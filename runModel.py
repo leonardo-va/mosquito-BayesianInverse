@@ -1,7 +1,7 @@
 import parametersDefault
 from odeSolver import *
 import numpy as np
-from quantityOfInterest import numberOfHosts
+from quantityOfInterest import numberOfHosts, numberOfMosquitos
 from matplotlib import pyplot as plt
 
 def mosquitoModel(t, u, parameters):
@@ -57,7 +57,6 @@ def mosquitoModel(t, u, parameters):
     alpha_H = parameters[14]
     gamma_H = parameters[15]
     
-    # print("h pop:", m)
     # equation
     res = np.zeros(u.shape)
     res[0] = beta*m - (delta_E+mu_E)*e
@@ -69,32 +68,49 @@ def mosquitoModel(t, u, parameters):
     res[6] = a*b_H*im*sh/nh - alpha_H*eh - mu_H*eh
     res[7] = alpha_H*eh-gamma_H*ih-mu_H*ih
     res[8] = gamma_H*ih - mu_H*rh
+    if(j<5*10^7):
 
-    # print(f'hostDerivative: {np.sum(res[5:])} \n host number: {nh}')
-    
+        print(j**2, "*", mu_J, "*", res[1])
     return res.T
-
-
-# print(parametersDefault.initialConditions.values())
-# print(np.array(list(parametersDefault.initialConditions.values())).reshape(9,-1)
-#       )
 
 pointSolution, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                 list(parametersDefault.parameters.values())), 
-                                                T=4,
+                                                T=20,
                                                 initialCondition=(0,np.array(list(parametersDefault.initialConditions.values())).reshape(9,-1)),
                                                 stepSize = 0.001,
                                                 method="Euler")
 
-# print(pointSolution)
-# print(interpolant.eval(2.5))
 
-# def hostPopulation(u_eval):
+def plotHosts(solutionInterpolant:PiecewiseLinearInterpolant):
+    _, axs = plt.subplots(2,2,sharey=True)
+    axs[0,0].plot(solutionInterpolant.grid, solutionInterpolant.values[:,5])
+    axs[0,0].set_ylabel('S(Hosts)')
+    axs[0,1].plot(solutionInterpolant.grid, solutionInterpolant.values[:,6])
+    axs[0,1].set_ylabel('E(Hosts)')
+    axs[1,0].plot(solutionInterpolant.grid, solutionInterpolant.values[:,7])
+    axs[1,0].set_ylabel('I(Hosts)')
+    axs[1,1].plot(solutionInterpolant.grid, solutionInterpolant.values[:,8])
+    axs[1,1].set_ylabel('R(Hosts)')
+    plt.show()
+
+def plotMosquitos(solutionInterpolant:PiecewiseLinearInterpolant):
+    _, axs = plt.subplots(3,2,sharey=True)
+    axs[0,0].plot(solutionInterpolant.grid, solutionInterpolant.values[:,0])
+    axs[0,0].set_ylabel('Eggs')
+    axs[0,1].plot(solutionInterpolant.grid, solutionInterpolant.values[:,1])
+    axs[0,1].set_ylabel('Juveniles')
+    axs[1,0].plot(solutionInterpolant.grid, solutionInterpolant.values[:,2])
+    axs[1,0].set_ylabel('S(Mosquitos)')
+    axs[1,1].plot(solutionInterpolant.grid, solutionInterpolant.values[:,3])
+    axs[1,1].set_ylabel('E(Mosquitos)')
+    axs[2,0].plot(solutionInterpolant.grid, solutionInterpolant.values[:,4])
+    axs[2,0].set_ylabel('I(Mosquitos)')
+    totalMosquitoPopulation = numberOfMosquitos(solutionInterpolant)
+    axs[2,1].plot(totalMosquitoPopulation.grid, totalMosquitoPopulation.values)
+    axs[2,1].set_ylabel('Total Population(Mosquitos)')
+    plt.show()
+        
 
 
-nHostsInterpolant = numberOfHosts(solutionInterpolant)
-# plt.scatter(solutionInterpolant.grid, solutionInterpolant.values[:,5])
-print(nHostsInterpolant.values)
-plt.scatter(nHostsInterpolant.grid, nHostsInterpolant.values)
-# plt.scatter(solutionInterpolant.grid, solutionInterpolant.values[:,7])
-plt.show()
+plotHosts(solutionInterpolant)
+plotMosquitos(solutionInterpolant)

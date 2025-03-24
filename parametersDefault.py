@@ -39,8 +39,8 @@ parameters = {
 }
 
 initialConditions ={
-    "eggs":0,
-    "juveniles":0,
+    "eggs":10000,
+    "juveniles":2000,
     "susceptible_m":50000,
     "exposed_m":10000,
     "infected_m":10000,

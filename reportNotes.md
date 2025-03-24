@@ -33,3 +33,38 @@ So there is a quantity of interest file now that has a function "linear combinat
 combination of the compartments.
 To get for example total hosts, you give the coefficients [0,0,0,0,0,1,1,1,1] which corresponds to S_h+E_h+I_h+R_h = N
 
+**Test the model**
+
+results make sense so far. i put 0 for eggs and juvenlies. The mosq. population dies out quickly after laying a couple of eggs. 
+Infected hosts go to 0 due to mosquitos dying.
+
+parameters = {
+    "delta_E" : 0.6,
+    "mu_E" : 0.875,
+    "beta" : np.random.rand(),
+    "alpha" : np.random.rand(),
+    "delta_J" : 0.09,
+    "mu_J" : np.random.rand(),
+    "omega" : 0.5,
+    "mu_M" : np.random.rand(),
+    "a" : 0.2,
+    "b_M" : 0.9,
+    "alpha_M" : 1/30,
+    "Lambda" : 12, # test
+    "b_H" : 0.8,
+    "mu_H" : 0.001, # test
+    "alpha_H" : 0.4,
+    "gamma_H" : 1/5.5
+}
+
+initialConditions ={
+    "eggs":0,
+    "juveniles":0,
+    "susceptible_m":50000,
+    "exposed_m":10000,
+    "infected_m":10000,
+    "susceptible_h":10000,
+    "exposed_h":1000,
+    "infected_h":1000,
+    "recovered_h":0
+}
