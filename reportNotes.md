@@ -14,6 +14,11 @@ solve iteratively calculates: nextState = CurrentState + stepsize*increment
 The increment function depends on the chosen method.
 
 
+**derivative evaluation** 
+
+right now u and the result are both transposed and copied every evaluation of rhs. see if that can be avoided
+
+
 **Problem with NANs:**
 
 eggs and juveniles are set to 0 for in the initial conditions for now, since the squared term overflows and breaks everything. This has impact on mosquito population and (somehow) host population
@@ -62,6 +67,41 @@ parameters = {
 initialConditions ={
     "eggs":0,
     "juveniles":0,
+    "susceptible_m":50000,
+    "exposed_m":10000,
+    "infected_m":10000,
+    "susceptible_h":10000,
+    "exposed_h":1000,
+    "infected_h":1000,
+    "recovered_h":0
+}
+
+plotted the mosq/host ratio. mosq die out quickly because of -J^2 term in juveniles. Found some parameter with trial and error that has the mosq. population and ratio somewhat stable long term: 
+can use them as prior means.
+Also the egg laying rate has to consider that there is more than 1 egg per lay. I used 0.1-0.2 as rate and that was too small(0.1 would mean there is 1 lay with 1 egg in lifecycle of 10 days. So multiply by 30). 
+
+parameters = {
+    "delta_E" : 0.6,
+    "mu_E" : 0.875,
+    "beta" : 3, # unknown ( egg laying rate )
+    "alpha" : 10**(-6), # infer this, (factor for square term)
+    "delta_J" : 0.09,
+    "mu_J" : 0.1, # unknown, juvenile mortality
+    "omega" : 0.5,
+    "mu_M" : 0.1, # infer this, (mosquito mortality rate)
+    "a" : 0.2,
+    "b_M" : 0.9,
+    "alpha_M" : 1/30,
+    "Lambda" : 12, # uknown
+    "b_H" : 0.8,
+    "mu_H" : 0.001, # uknown
+    "alpha_H" : 0.4,
+    "gamma_H" : 1/5.5
+}
+
+initialConditions ={
+    "eggs":10000,
+    "juveniles":10000,
     "susceptible_m":50000,
     "exposed_m":10000,
     "infected_m":10000,

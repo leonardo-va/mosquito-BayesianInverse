@@ -74,14 +74,14 @@ def mosquitoModel(t, u, parameters):
 
 pointSolution, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                 list(parametersDefault.parameters.values())), 
-                                                T=200,
+                                                T=40,
                                                 initialCondition=(0,np.array(list(parametersDefault.initialConditions.values())).reshape(9,-1)),
                                                 stepSize = 0.001,
                                                 method="Euler")
 
 
 
-
+print(solutionInterpolant.evalVec(np.linspace(1,5,100)).shape)
 
 plotHosts(solutionInterpolant)
 plotMosquitos(solutionInterpolant)

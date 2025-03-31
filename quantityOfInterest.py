@@ -1,7 +1,7 @@
 from odeSolver import PiecewiseLinearInterpolant
 import numpy as np
 
-def linearCombinationQOI(interpolant: PiecewiseLinearInterpolant, coefficients:list):
+def linearCombinationQOI(interpolant: PiecewiseLinearInterpolant, coefficients:list)->PiecewiseLinearInterpolant:
     
     if(len(coefficients)!=interpolant.codomainDim()):
         print(f'Warning: linear combination coefficients has length {len(coefficients)}, but interpolant codomain has dimension {interpolant.codomainDim()}')

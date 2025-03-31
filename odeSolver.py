@@ -7,18 +7,24 @@ class PiecewiseLinearInterpolant():
     def eval(self, x):
         if (x<self.grid[0] or x> self.grid[-1]):
             print(f"{x} out of range")
-            return None
+            return np.nan
         right = np.argwhere(self.grid>x)[0][0]
         left = right-1
         dx = (x-self.grid[left])/(self.grid[right]-self.grid[left])
         res = self.values[left] + (self.values[right]-self.values[left])*dx
         return res
+    def evalVec(self, xs:np.array)->np.array:
+        resList = []
+        for x in xs:
+            resList.append(self.eval(x))
+        return np.array(resList)
+     
     def codomainDim(self):
         return self.values.shape[1]
        
 
 class ODESolver():
-    def solve(self, odeRHS, T, initialCondition, stepSize = 0.01, method="RK4"):
+    def solve(self, odeRHS, T, initialCondition, stepSize = 0.01, method="RK4")->PiecewiseLinearInterpolant:
         if T<initialCondition[0]:
             print(f"{T} is out of range.")
             return None

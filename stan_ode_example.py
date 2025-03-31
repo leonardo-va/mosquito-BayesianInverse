@@ -4,11 +4,13 @@ import numpy as np
 
 def harmonicOscillatorEquation(t,u,parameters):
 
-    result = np.zeros(2)
-    vector[2] dydt;
-    dydt[1] = y[2];
-    dydt[2] = -y[1] - theta * y[2];
-    return dydt;
+    # dudt = np.array([0,0])
+    u = u.T
+    dudt = np.zeros(u.shape)
+    theta = parameters[0]
+    dudt[0] = u[1]
+    dudt[1] = -u[0] - theta * u[1]
+    return dudt.T
 
 ode_Code = """
 functions {
@@ -42,7 +44,20 @@ model {
   }
 }
 """
-ode_Data = {}
+
+initial = (0, np.array([0,1]))
+print(initial[1].shape)
+theta_Real = 0.5
+solver = odeSolver.ODESolver()
+_, interpolantOscillator = solver.solve(lambda t,u: harmonicOscillatorEquation(t,u,[theta_Real]), 10, initial)
+ts = np.linspace(0,10,100)
+us = interpolantOscillator.evalVec(ts)
+ode_Data = {
+    "T": 100,
+    "y": us.tolist(),
+    "t0": 0,
+    "ts": ts
+    }
 
 posterior = stan.build(ode_Code, data=ode_Data)
 fit = posterior.sample(num_chains=4, num_samples=1000)
