@@ -1,5 +1,10 @@
 # mosquito-BayesianInverse
 
+requires ubuntu 22.04
+
+apt install build-essential
+pip install -r requirements.txt
+
 parameters = {
     # these have somewhat stable mosquito/host ratio, around 13. use this maybe as prior means
     "delta_E" : 0.6,
