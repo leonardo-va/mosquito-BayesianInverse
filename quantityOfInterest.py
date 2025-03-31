@@ -16,3 +16,7 @@ def numberOfHosts(interpolant:PiecewiseLinearInterpolant):
  
 def numberOfMosquitos(interpolant:PiecewiseLinearInterpolant):
     return linearCombinationQOI(interpolant, [0,0,1,1,1,0,0,0,0])
+
+def mosquitoToHostRatio(interpolant: PiecewiseLinearInterpolant):
+    ratioValues = numberOfMosquitos(interpolant).values/numberOfHosts(interpolant).values
+    return PiecewiseLinearInterpolant(interpolant.grid, ratioValues)

@@ -18,6 +18,8 @@ The increment function depends on the chosen method.
 
 eggs and juveniles are set to 0 for in the initial conditions for now, since the squared term overflows and breaks everything. This has impact on mosquito population and (somehow) host population
 need checking why it impacts host population. Need to implement something to adapt parameters such that mosquito population doesnt blow up.
+Again, squared term is really bad and doest make sense. have to replace it by something else, and/or try with smaller 
+stepsize. Juveniles go into the negative and then this gets out of control. Make alpha small works ok
 
 
 **Host Population**
