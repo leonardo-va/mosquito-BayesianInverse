@@ -45,21 +45,24 @@ model {
 }
 """
 
-initial = (0, np.array([0,1]))
-print(initial[1].shape)
+initial = (1, np.array([0,1]))
 theta_Real = 0.5
 solver = odeSolver.ODESolver()
 _, interpolantOscillator = solver.solve(lambda t,u: harmonicOscillatorEquation(t,u,[theta_Real]), 10, initial)
-ts = np.linspace(0,10,100)
+ts = np.linspace(1,10,100)
 us = interpolantOscillator.evalVec(ts)
+
 ode_Data = {
     "T": 100,
     "y": us.tolist(),
-    "t0": 0,
+    "t0": 0.5,
     "ts": ts
     }
 
 posterior = stan.build(ode_Code, data=ode_Data)
-fit = posterior.sample(num_chains=4, num_samples=1000)
-eta = fit["eta"]  # array with shape (8, 4000)
+fit = posterior.sample(num_chains=4, num_samples=100)
+print(fit.keys())
+
 df = fit.to_frame()
+df.to_csv("harmonic_ocillator_sampling.csv")
+print(df.describe().T)
