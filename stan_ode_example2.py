@@ -16,10 +16,11 @@ ode_Code = """
 functions {
   vector sho(real t,
              vector y,
-             real theta) {
+             real theta,
+             real theta2) {
     vector[2] dydt;
     dydt[1] = y[2];
-    dydt[2] = -y[1] - theta * y[2];
+    dydt[2] = -theta2*y[1] - theta * y[2];
     return dydt;
   }
 }
@@ -33,11 +34,13 @@ parameters {
   vector[2] y0;
   vector<lower=0>[2] sigma;
   real theta;
+  real theta2;
 }
 model {
-  array[T] vector[2] mu = ode_rk45(sho, y0, t0, ts, theta);
+  array[T] vector[2] mu = ode_rk45(sho, y0, t0, ts, theta, theta2);
   sigma ~ normal(0, 2.5);
   theta ~ std_normal();
+  theta2 ~ std_normal();
   y0 ~ std_normal();
   for (t in 1:T) {
     y[t] ~ normal(mu[t], sigma);
@@ -46,10 +49,10 @@ model {
 """
 
 initial = (1, np.array([0,1]))
-theta_Real = 0.5
+theta_Real = [0.5, 0.8]
 solver = odeSolver.ODESolver()
-_, interpolantOscillator = solver.solve(lambda t,u: harmonicOscillatorEquation(t,u,[theta_Real]), 10, initial)
-ts = np.linspace(1,10,10)
+_, interpolantOscillator = solver.solve(lambda t,u: harmonicOscillatorEquation(t,u,theta_Real), 10, initial)
+ts = np.linspace(1,10,100)
 us = interpolantOscillator.evalVec(ts)
 
 ode_Data = {
