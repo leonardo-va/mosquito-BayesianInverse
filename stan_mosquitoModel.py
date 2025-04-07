@@ -61,7 +61,7 @@ parameters {
 }
 model {
   array[T] vector[9] mu = ode_rk45(sho, y0, t0, ts, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16);
-  sigma ~ normal(0, 250);
+  sigma ~ normal(0, 2500);
 
   p1 ~ normal(0.6, 0.1);
   p2 ~ normal(0.875, 0.1);
@@ -91,19 +91,19 @@ model {
 initial = (0, list(parametersDefault.initialConditions.values()))
 parameters_Real = list(parametersDefault.parameters.values())
 solver = odeSolver.ODESolver()
-_, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,parameters_Real), 5, initial)
-ts = np.linspace(1,5,100)
+_, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,parameters_Real), 10, initial)
+ts = np.linspace(0.1,10,200)
 us = interpolantMosquito.evalVec(ts)
 
 ode_Data = {
-    "T": 100,
+    "T": 200,
     "y": us.tolist(),
     "t0": 0,
     "ts": ts
     }
 
 posterior = stan.build(ode_Code, data=ode_Data)
-fit = posterior.sample(num_chains=4, num_samples=100)
+fit = posterior.sample(num_chains=4, num_samples=4000)
 print(fit.keys())
 
 df = fit.to_frame()
