@@ -2,6 +2,7 @@ import parametersDefault
 from odeSolver import ODESolver
 import numpy as np
 from visualization import plotMosquitoToHostRatio, plotMosquitos, plotHosts
+import quantityOfInterest
 
 def mosquitoModel(t, u, parameters):
     '''
@@ -84,13 +85,35 @@ def mosquitoModel(t, u, parameters):
 
 def run():
     pointSolution, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
-                                                    list(parametersDefault.parameters.values())), 
+                                                    list(parametersDefault.defaultParameters.values())), 
                                                     T=40,
-                                                    initialCondition=(0,np.array(list(parametersDefault.initialConditions.values())).reshape(9,-1)),
+                                                    initialCondition=(0,np.array(list(parametersDefault.defaultInitialConditions.values())).reshape(9,-1)),
                                                     stepSize = 0.001,
                                                     method="Euler")
-
     print(solutionInterpolant.evalVec(np.linspace(1,5,100)).shape)
     plotHosts(solutionInterpolant)
     plotMosquitos(solutionInterpolant)
     plotMosquitoToHostRatio(solutionInterpolant)
+
+def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: dict, quantitiesOfInterest : list, solverMethod = 'RK4')->dict:
+    
+    initial = (timeInterval[0], list(initialCondition.values()))
+    solver = ODESolver()
+    _, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,list(parameters.values())), timeInterval[1], initial, 0.001, solverMethod)
+    ts = np.linspace(timeInterval[0], timeInterval[1], N)
+    us = interpolantMosquito.evalVec(ts)
+    combinedQoi = quantitiesOfInterest[0](interpolantMosquito)
+    for idx, qoi in enumerate(quantitiesOfInterest):
+        if idx == 0:
+            continue
+        combinedQoi = quantityOfInterest.combine(combinedQoi, qoi(interpolantMosquito))
+    us = combinedQoi.evalVec(ts)
+
+    ode_Data = {
+        "T": N,
+        "y": us.tolist(),
+        "t0": ts[0]-0.0001,
+        "ts": ts
+        }
+    return ode_Data
+

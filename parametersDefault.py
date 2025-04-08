@@ -1,6 +1,6 @@
 import numpy as np
 
-parametersUniform = {
+uniformParameters = {
     "delta_E" : np.random.rand(),
     "mu_E" : np.random.rand(),
     "beta" : np.random.rand(),
@@ -19,7 +19,7 @@ parametersUniform = {
     "gamma_H" : np.random.rand()
 }
 
-parameters = {
+defaultParameters = {
     # these have somewhat stable mosquito/host ratio, around 13. use this maybe as prior means
     "delta_E" : 0.6,
     "mu_E" : 0.875,
@@ -58,7 +58,7 @@ generateDataParameters = {
     "gamma_H" : 1/5.5
 }
 
-initialConditions ={
+defaultInitialConditions ={
     "eggs":10000,
     "juveniles":10000,
     "susceptible_m":50000,
@@ -70,4 +70,4 @@ initialConditions ={
     "recovered_h":0
 }
 
-initialConditionsRandom = (0,100*np.random.rand(10,1).reshape(10,-1))
+randomInitialConditions = (0,100*np.random.rand(10,1).reshape(10,-1))

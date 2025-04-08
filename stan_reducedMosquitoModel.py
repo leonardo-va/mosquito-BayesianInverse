@@ -1,12 +1,10 @@
 import stan
-import odeSolver
-import numpy as np
 import parametersDefault
 import quantityOfInterest
-from runModel import mosquitoModel, generateData
+from runModel import generateData
 import time as t
 
-
+# set your ode code here
 ode_Code = """
 functions {
   vector sho(real t,
@@ -25,10 +23,17 @@ functions {
     res[9] = p16*u[8] - p14*u[9];
     return res;
   }
+
+  vector qoi(vector u){
+    vector[2] res;
+    res[1] = u[3] + u[4] + u[5];
+    res[2] = u[1];
+    return res;
+  }
 }
 data {
   int<lower=1> T;
-  array[T] vector<lower=0>[9] y;
+  array[T] vector<lower=0>[2] y;
   real t0;
   array[T] real ts;
 }
@@ -74,56 +79,25 @@ model {
   p16 ~ normal(1/5.5, 0.1);
 
   y0 ~ normal(10000, sigma);
+
   for (t in 1:T) {
-    y[t] ~ normal(mu[t], sigma);
+    vector[2] q = qoi(mu[t]);
+    y[t] ~ normal(q, 2500);
   }
-  
 }
 """
 
-# data generation
-
-# timeInterval = [0,10]
-# initial = (timeInterval[0], list(parametersDefault.defaultInitialConditions.values()))
-# parameters_Real = list(parametersDefault.defaultParameters.values())
-# solver = odeSolver.ODESolver()
-# _, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,parameters_Real), 10, initial)
-# ts = np.linspace(0.1,10,200)
-# us = interpolantMosquito.evalVec(ts)
-
-# ode_Data = {
-#     "T": 200,
-#     "y": us.tolist(),
-#     "t0": ts[0],
-#     "ts": ts
-#     }
-
+# set your data here
 ode_Data = generateData(200, [0,10], parametersDefault.defaultParameters, parametersDefault.defaultInitialConditions, 
                         [quantityOfInterest.numberOfMosquitos, 
                          quantityOfInterest.numberOfEggs])
-# build stan model and sample
 
+# build stan model and sample
 posterior = stan.build(ode_Code, data=ode_Data)
-fit = posterior.sample(num_chains=4, num_samples=4000)
-print(fit.keys())
+fit = posterior.sample(num_chains=4, num_samples=100)
+
 
 df = fit.to_frame()
 df.to_csv(f'samples_{t.time()}.csv')
 print(df.describe().T)
 
-#   model_params[1] ~ normal(0.6, 0.1);
-#   model_params[2] ~ normal(0.875, 0.1);
-#   model_params[3] ~ normal(3, 0.1);
-#   model_params[4] ~ normal(10^(-6), 0.00000001);
-#   model_params[5] ~ normal(0.09, 0.01);
-#   model_params[6] ~ normal(0.1, 0.01);
-#   model_params[7] ~ normal(0.5, 0.1);
-#   model_params[8] ~ normal(0.1, 0.01);
-#   model_params[9] ~ normal(0.2, 0.1);
-#   model_params[10] ~ normal(0.9, 0.1);
-#   model_params[11] ~ normal(1.0/30, 1.0/60);
-#   model_params[12] ~ normal(12, 1);
-#   model_params[13] ~ normal(0.8, 0.1);
-#   model_params[14] ~ normal(0.001, 0.0001);
-#   model_params[15] ~ normal(0.4, 0.1);
-#   model_params[16] ~ normal(1/5.5, 0.1);
