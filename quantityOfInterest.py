@@ -11,6 +11,25 @@ def linearCombinationQOI(interpolant: PiecewiseLinearInterpolant, coefficients:l
     QOI_Interpolant = PiecewiseLinearInterpolant(interpolant.grid, QOIValues)
     return QOI_Interpolant
 
+def eggs(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [1,0,0,0,0,0,0,0,0])
+def juveniles(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,1,0,0,0,0,0,0,0])
+def S_Mosquitoes(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,0,1,0,0,0,0,0,0])
+def E_Mosquitoes(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,0,0,1,0,0,0,0,0])
+def I_Mosquitoes(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,0,0,0,1,0,0,0,0])
+def S_Hosts(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,0,0,0,0,1,0,0,0])
+def E_Hosts(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,0,0,0,0,0,1,0,0])
+def I_Hosts(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,0,0,0,0,0,0,1,0])
+def R_Hosts(interpolant: PiecewiseLinearInterpolant):
+    return linearCombinationQOI(interpolant, [0,0,0,0,0,0,0,0,1])
+
 def numberOfHosts(interpolant:PiecewiseLinearInterpolant):
     return linearCombinationQOI(interpolant, [0,0,0,0,0,1,1,1,1])
  

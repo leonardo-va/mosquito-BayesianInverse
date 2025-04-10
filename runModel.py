@@ -1,7 +1,9 @@
 import parametersDefault
 from odeSolver import ODESolver
 import numpy as np
-from visualization import plotMosquitoToHostRatio, plotMosquitos, plotHosts
+import visualization
+from matplotlib import pyplot as plt
+import quantityOfInterest
 
 def mosquitoModel(t, u, parameters):
     '''
@@ -83,14 +85,47 @@ def mosquitoModel(t, u, parameters):
 
 
 def run():
-    pointSolution, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
-                                                    list(parametersDefault.parameters.values())), 
+    # pointSolution, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
+    #                                                 list(parametersDefault.parameters.values())), 
+    #                                                 T=40,
+    #                                                 initialCondition=(0,np.array(list(parametersDefault.initialConditions.values())).reshape(9,-1)),
+    #                                                 stepSize = 0.001,
+    #                                                 method="Euler")
+    alphas = [10**(-6), 2*10**(-6),2.5*10**(-6),3*10**(-6),4*10**(-6),6*10**(-6)]
+    parameters1, parameters2, parameters3 = parametersDefault.parameters.copy(),parametersDefault.parameters.copy(),parametersDefault.parameters.copy()
+    parameters2['alpha'] = 5*10**(-6)
+    parameters3['alpha'] = 10**(-5)
+    parametersList = []
+    for alpha in alphas:
+        newParameters = parametersDefault.parameters.copy()
+        newParameters["alpha"] = alpha
+        parametersList.append(newParameters)
+    
+    fig, axes = plt.subplots(2, int(len(alphas)/2), figsize=(15, 5))
+    for idx, params in enumerate(parametersList):
+        print(params['alpha'])
+        pointSolution, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
+                                                    list(params.values())), 
                                                     T=40,
                                                     initialCondition=(0,np.array(list(parametersDefault.initialConditions.values())).reshape(9,-1)),
                                                     stepSize = 0.001,
-                                                    method="Euler")
+                                                    method="RK4")
+        # visualization.plotMosquitoPopulation(solutionInterpolant)
+        eggs = quantityOfInterest.eggs(solutionInterpolant)
+        juveniles = quantityOfInterest.juveniles(solutionInterpolant)
+        total = quantityOfInterest.numberOfMosquitos(solutionInterpolant)
+        axes[idx].plot(eggs.grid, eggs.values, label='Eggs', color='blue')
+        axes[idx].plot(juveniles.grid, juveniles.values, label='Juveniles', color='green')
+        axes[idx].plot(total.grid, total.values, label='Total Mosquitos', color='red')
+        axes[idx].set_xlabel('Time')
+        axes[idx].set_ylabel('Population')
+        axes[idx].set_title(f'alpha = {params["alpha"]}')
+        axes[idx].legend()
+    plt.tight_layout()
+    plt.show()
+    # print(solutionInterpolant.evalVec(np.linspace(1,5,100)).shape)
+    # plotHosts(solutionInterpolant)
+    # plotMosquitos(solutionInterpolant)
+    # plotMosquitoToHostRatio(solutionInterpolant)
 
-    print(solutionInterpolant.evalVec(np.linspace(1,5,100)).shape)
-    plotHosts(solutionInterpolant)
-    plotMosquitos(solutionInterpolant)
-    plotMosquitoToHostRatio(solutionInterpolant)
+run()

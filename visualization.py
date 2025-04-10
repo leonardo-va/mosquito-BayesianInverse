@@ -35,3 +35,21 @@ def plotMosquitoToHostRatio(solutionInterpolant: PiecewiseLinearInterpolant):
     ratioInterpolant = quantityOfInterest.mosquitoToHostRatio(solutionInterpolant)
     plt.plot(ratioInterpolant.grid, ratioInterpolant.values)
     plt.show()
+
+def plotMosquitoPopulation(solutionInterpolant: PiecewiseLinearInterpolant):
+    # Mosquito Eggs/Juveniles/Total
+    eggs = quantityOfInterest.eggs(solutionInterpolant)
+    juveniles = quantityOfInterest.juveniles(solutionInterpolant)
+    total = quantityOfInterest.numberOfMosquitos(solutionInterpolant)
+    plt.plot(eggs.grid, eggs.values, label='Eggs', color='blue')
+    plt.plot(juveniles.grid, juveniles.values, label='Juveniles', color='green')
+    plt.plot(total.grid, total.values, label='Total Mosquitos', color='red')
+   
+    plt.xlabel('Time')
+    plt.ylabel('Population')
+    plt.title('Mosquito Population Over Time')
+    plt.legend()
+    plt.show()
+
+# Host SEIR
+# Mosq SEI
