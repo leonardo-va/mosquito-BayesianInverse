@@ -110,3 +110,17 @@ initialConditions ={
     "infected_h":1000,
     "recovered_h":0
 }
+
+
+**Sampling with Stan**
+stan examples work
+Mosquito model sampling is very slow. Initial value is a paramter -> its 25 dimensions
+There are probably a lot of rejections. The likelihood might be very slim, and thus the observed/generated fake data be unlikely for most parameter values.
+On i5 with xe graphics sampling seems impossible. 
+Sampling worked, but slow, at home on ryzen7/rtx2060 with the following settings:
+T = 5, 100 measurements, noise is normal with variance 250. 
+I dont know how stan is parallelized (maybe look it up for report). If it uses gpu it might make sense that it works here. 
+Next test will be T=10, 200 measurements, larger noise (normal with Var 2500).  Larger noise should make the likelihood & posterior broader, and thus be easier to sample.
+Can also try to remove the initial value from parameters and handle it differently. That would be -9 dimensions.
+
+Stan has a burn in period of 1k samples per chain.
