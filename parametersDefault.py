@@ -24,7 +24,7 @@ parameters = {
     "delta_E" : 0.6,
     "mu_E" : 0.875,
     "beta" : 3, # unknown ( egg laying rate )
-    "alpha" : 10**(-6), # infer this, (factor for square term)
+    "alpha" : 2*10**(-6), # infer this, (factor for square term)
     "delta_J" : 0.09,
     "mu_J" : 0.1, # unknown, juvenile mortality
     "omega" : 0.5,
