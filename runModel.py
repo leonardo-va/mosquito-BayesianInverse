@@ -107,12 +107,9 @@ def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: 
 
 def run():
     alphas = [10**(-6), 2*10**(-6),2.5*10**(-6),3*10**(-6),4*10**(-6),6*10**(-6)]
-    # parameters1, parameters2, parameters3 = parametersDefault.parameters.copy(),parametersDefault.parameters.copy(),parametersDefault.parameters.copy()
-    # parameters2['alpha'] = 5*10**(-6)
-    # parameters3['alpha'] = 10**(-5)
     parametersList = []
     for alpha in alphas:
-        newParameters = parametersDefault.parameters.copy()
+        newParameters = parametersDefault.defaultParameters.copy()
         newParameters["alpha"] = alpha
         parametersList.append(newParameters)
     
@@ -120,7 +117,7 @@ def run():
     nFigCols = 3
     figMosquitoPop, axesMosquitoPop = plt.subplots(nFigRows, nFigCols, figsize=(15, 10))
     for idx, params in enumerate(parametersList):
-        print(params['alpha'])
+        print(f"alpha = {params['alpha']}")
         _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                     list(params.values())), 
                                                     T=40,
@@ -151,9 +148,9 @@ def run():
 
     figSIR, axesSIR = plt.subplots(2,4,figsize=(15,10))
     _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
-                                                list(parametersDefault.parameters.values())), 
+                                                list(parametersDefault.defaultParameters.values())), 
                                                 T=40,
-                                                initialCondition=(0,np.array(list(parametersDefault.initialConditions.values())).reshape(9,-1)),
+                                                initialCondition=(0,np.array(list(parametersDefault.defaultInitialConditions.values())).reshape(9,-1)),
                                                 stepSize = 0.001,
                                                 method="RK4")
     S_m = quantityOfInterest.S_Mosquitoes(solutionInterpolant)
@@ -164,11 +161,11 @@ def run():
     I_h = quantityOfInterest.I_Hosts(solutionInterpolant)
     R_h = quantityOfInterest.R_Hosts(solutionInterpolant)
  
-    axesSIR[0,0].plot(S_m.grid, S_m.values, label='Susceptible Mosquitos', color='blue')
+    axesSIR[0,0].plot(S_m.grid, S_m.values, label='Susceptible Mosquitoes', color='blue')
     axesSIR[0,0].legend()
-    axesSIR[0,1].plot(E_m.grid, E_m.values, label='Exposed Mosquitos', color='yellow')
+    axesSIR[0,1].plot(E_m.grid, E_m.values, label='Exposed Mosquitoes', color='yellow')
     axesSIR[0,1].legend()
-    axesSIR[0,2].plot(I_m.grid, I_m.values, label='Infectious Mosquitos',color='red')
+    axesSIR[0,2].plot(I_m.grid, I_m.values, label='Infectious Mosquitoes',color='red')
     axesSIR[0,2].legend()
     axesSIR[0,3].axis('off')
 
@@ -185,14 +182,6 @@ def run():
     figSIR.show()
     figSIR.savefig('SIR.png')
     plt.waitforbuttonpress()
-
-
-
-
-    # print(solutionInterpolant.evalVec(np.linspace(1,5,100)).shape)
-    # plotHosts(solutionInterpolant)
-    # plotMosquitos(solutionInterpolant)
-    # plotMosquitoToHostRatio(solutionInterpolant)
 
 run()
 
