@@ -124,3 +124,10 @@ Next test will be T=10, 200 measurements, larger noise (normal with Var 2500).  
 Can also try to remove the initial value from parameters and handle it differently. That would be -9 dimensions.
 
 Stan has a burn in period of 1k samples per chain.
+
+**Ode solvers in stan**
+We want to change the accuracy of the solvers to decrease cost of samples, or to use multilevel schemes.
+Stan only has adaptive samplers, so we cant control stepsize. But Accuracy and a max number of steps can
+be adjusted. Standard relative and absolute accuracies are 10^(-6), and max number of steps are 1 mil.
+I reduced the max steps to 5k, and the accuracies to 10^(-2). Sampling seems a lot faster now, but lets wait
+results.

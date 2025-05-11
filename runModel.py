@@ -69,17 +69,18 @@ def mosquitoModel(t, u, parameters):
     # res[6] = a*b_H*im*sh/nh - alpha_H*eh - mu_H*eh
     # res[7] = alpha_H*eh-gamma_H*ih-mu_H*ih
     # res[8] = gamma_H*ih - mu_H*rh
-    
-    res = np.zeros(u.shape)
-    res[0] = parameters[2]*(u[2]+u[3]+u[4]) - (parameters[0]+parameters[1])*u[0]
-    res[1] = parameters[0]*u[0] - parameters[3]*(u[1]**2) - parameters[5]*u[1] - parameters[4]*u[1]
-    res[2] = parameters[6]*parameters[4]*u[1] - parameters[8]*parameters[9]*u[2]*u[7]/(u[5]+u[6]+u[7]+u[8]) - parameters[7]*u[2]
-    res[3] = parameters[8]*parameters[9]*u[2]*u[7]/(u[5]+u[6]+u[7]+u[8]) - (parameters[10]+parameters[7])*u[3]
-    res[4] = parameters[10]*u[3] - parameters[7]*u[4]
-    res[5] = parameters[11] - parameters[8]*parameters[12]*u[4]*u[5]/(u[5]+u[6]+u[7]+u[8]) - parameters[13]*u[5]
-    res[6] = parameters[8]*parameters[12]*u[4]*u[5]/(u[5]+u[6]+u[7]+u[8]) - parameters[14]*u[6] - parameters[13]*u[6]
-    res[7] = parameters[14]*u[6]-parameters[15]*u[7]-parameters[13]*u[7]
-    res[8] = parameters[15]*u[7] - parameters[13]*u[8]
+    # res = np.zeros(u.shape)
+   
+    res0 = parameters[2]*(u[2]+u[3]+u[4]) - (parameters[0]+parameters[1])*u[0]
+    res1 = parameters[0]*u[0] - parameters[3]*(u[1]**2) - parameters[5]*u[1] - parameters[4]*u[1]
+    res2 = parameters[6]*parameters[4]*u[1] - parameters[8]*parameters[9]*u[2]*u[7]/(u[5]+u[6]+u[7]+u[8]) - parameters[7]*u[2]
+    res3 = parameters[8]*parameters[9]*u[2]*u[7]/(u[5]+u[6]+u[7]+u[8]) - (parameters[10]+parameters[7])*u[3]
+    res4 = parameters[10]*u[3] - parameters[7]*u[4]
+    res5 = parameters[11] - parameters[8]*parameters[12]*u[4]*u[5]/(u[5]+u[6]+u[7]+u[8]) - parameters[13]*u[5]
+    res6 = parameters[8]*parameters[12]*u[4]*u[5]/(u[5]+u[6]+u[7]+u[8]) - parameters[14]*u[6] - parameters[13]*u[6]
+    res7 = parameters[14]*u[6]-parameters[15]*u[7]-parameters[13]*u[7]
+    res8 = parameters[15]*u[7] - parameters[13]*u[8]
+    res = np.array([res0, res1, res2, res3, res4, res5, res6, res7, res8])
     return res.T
 
 def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: dict, quantitiesOfInterest : list, solverMethod = 'RK4')->dict:
@@ -183,7 +184,7 @@ def run():
     figSIR.savefig('SIR.png')
     plt.waitforbuttonpress()
 
-run()
+
 
 
 
