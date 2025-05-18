@@ -2,18 +2,25 @@
 
 
 import pymc as pm
+import pytensor as pt
 from runModel import mosquitoModel, generateData
 import parametersDefault
 import quantityOfInterest
+import odeSolver
 
 
 parameters = parametersDefault.defaultParameters
-quantitiesOfInterest = [quantityOfInterest.numberOfMosquitos, quantityOfInterest.numberOfEggs]
-ode_Data = generateData(100, [0,10], parameters, parametersDefault.defaultInitialConditions, 
-                        quantitiesOfInterest)
+initialConditions = parametersDefault.defaultInitialConditions
+inferredParameters = ["alpha", "mu_M"]
+observedQuantities = [quantityOfInterest.numberOfMosquitos, quantityOfInterest.numberOfEggs]
+timeInterval = [0,10]
+stepsize = 0.001
+ode_Data = generateData(100, timeInterval, parameters, parametersDefault.defaultInitialConditions, 
+                        observedQuantities)
 print("---------------------------------------------------------")
-odeModel = pm.ode.DifferentialEquation(lambda u,t,p: mosquitoModel(t,u,p).tolist(),
-                                        ode_Data["ts"], n_states=9, n_theta=16)
+# odeModel = pm.ode.DifferentialEquation(lambda u,t,p: mosquitoModel(t,u,p).tolist(),
+#                                         ode_Data["ts"], n_states=9, n_theta=16)
+solver = odeSolver.ODESolver()
 
 with pm.Model() as model:
     #Priors
@@ -22,16 +29,23 @@ with pm.Model() as model:
     parameters["alpha"] = alpha
     parameters["mu_M"] = mu_M
     #Forward
-    odeSolution = odeModel(list(parametersDefault.defaultInitialConditions.values()), list(parameters.values()))
-    print("***********************", odeSolution)
-    forwardSolution = []
-    for qoi in quantitiesOfInterest:
-        forwardSolution.append(qoi(odeSolution[0]))
+    # odeSolution = odeModel(list(parametersDefault.defaultInitialConditions.values()), list(parameters.values()))
+    # forwardSolution = []
+    # for qoi in quantitiesOfInterest:
+    #     forwardSolution.append(qoi(odeSolution[0]))
+
+    
+    # Pytensor scan is a looping function
+    # solver.solve(mosquitoModel, 10, initialConditions)
+    _, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,list(parameters.values())), 
+                                          timeInterval[1], 
+                                          (timeInterval[0], list(initialConditions.values())), 
+                                          stepsize, "RK4")
     #Likelihood
-    observation = []
-    for qoi in quantitiesOfInterest:
-        observation.append(qoi(ode_Data["y"]))
-    pm.Normal("Y_obs", mu=odeSolution, sigma=5000, observed = ode_Data["y"])
+    qoi = []
+    for qoi in observedQuantities:
+        qoi.append(qoi(ode_Data["y"]))
+    pm.Normal("Y_obs", mu=qoi, sigma=5000, observed = ode_Data["y"])
     print("hi")
 
 sampler = "NUTS PyMC ODE"

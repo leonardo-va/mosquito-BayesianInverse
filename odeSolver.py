@@ -43,7 +43,17 @@ class ODESolver():
         linearInterpolantSolution = PiecewiseLinearInterpolant(grid, solutionArray)
         return linearInterpolantSolution.eval(T), linearInterpolantSolution
 
-    
+    # def getPymcIncrementFunction(self, odeRHS, dt, method = "RK4"):
+    #     self.methods[method](,dt)
+    #     odeRHS()
+    #     def ode_update_function(x, y, alpha, beta, gamma, delta):
+    #         x_new = x + (alpha * x - beta * x * y) * dt
+    #         y_new = y + (-gamma * y + delta * x * y) * dt
+    #         self.methods[method](self, odeRHS, )
+    #         return x_new, y_new
+    #     pass
+
+
     def _incrementRK4(self, odeRHS, currentState, stepsize):
         t = currentState[0]
         u = currentState[1]

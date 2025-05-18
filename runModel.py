@@ -80,6 +80,8 @@ def mosquitoModel(t, u, parameters):
     res6 = parameters[8]*parameters[12]*u[4]*u[5]/(u[5]+u[6]+u[7]+u[8]) - parameters[14]*u[6] - parameters[13]*u[6]
     res7 = parameters[14]*u[6]-parameters[15]*u[7]-parameters[13]*u[7]
     res8 = parameters[15]*u[7] - parameters[13]*u[8]
+    # print(len(res0), len(res1),len(res2), len(res3),len(res4), len(res5),len(res6), len(res7),len(res8))
+    print(res0.shape, res1.shape,res2.shape, res3.shape,res4.shape, res5.shape,res6.shape, res7.shape,res8.shape)
     res = np.array([res0, res1, res2, res3, res4, res5, res6, res7, res8])
     return res.T
 
