@@ -46,7 +46,7 @@ with pm.Model() as model:
     for qoi in observedQuantities:
         qoi.append(qoi(ode_Data["y"]))
     pm.Normal("Y_obs", mu=qoi, sigma=5000, observed = ode_Data["y"])
-    print("hi")
+    
 
 sampler = "NUTS PyMC ODE"
 tune = draws = 15

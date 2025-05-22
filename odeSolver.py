@@ -28,40 +28,38 @@ class ODESolver():
         if T<initialCondition[0]:
             print(f"{T} is out of range.")
             return None
+        
         NSteps = int(np.ceil(T/stepSize))+1
-        currentState = (initialCondition[0], np.array(initialCondition[1]).reshape((1,-1)))
-        dimPhaseSpace = int(np.max(currentState[1].shape))
+        currentState = (initialCondition[0], initialCondition[1])
+        dimPhaseSpace = len(initialCondition[1])
         solutionArray = np.zeros((NSteps+1, dimPhaseSpace))
         grid = np.zeros((NSteps+1,1))
-        solutionArray[0] = currentState[1]
+        solutionArray[0] = currentState[1].flatten()
         grid[0] = initialCondition[0]
         for i in range(NSteps):
-            newState = currentState[1] + stepSize * self.methods[method](self,odeRHS, currentState, stepSize)
+            newState = currentState[1] + stepSize * self.methods[method](self,odeRHS, currentState[1], stepSize)
             currentState = (currentState[0] + stepSize, newState)
-            solutionArray[i+1] = currentState[1]
+            solutionArray[i+1] = currentState[1].flatten()
             grid[i+1] = currentState[0]
         linearInterpolantSolution = PiecewiseLinearInterpolant(grid, solutionArray)
         return linearInterpolantSolution.eval(T), linearInterpolantSolution
 
-    # def getPymcIncrementFunction(self, odeRHS, dt, method = "RK4"):
-    #     self.methods[method](,dt)
-    #     odeRHS()
-    #     def ode_update_function(x, y, alpha, beta, gamma, delta):
-    #         x_new = x + (alpha * x - beta * x * y) * dt
-    #         y_new = y + (-gamma * y + delta * x * y) * dt
-    #         self.methods[method](self, odeRHS, )
-    #         return x_new, y_new
-    #     pass
-
-
+    def stepRK4_pymc(odeRHS, state, stepsize):
+    
+        k1 = odeRHS(state)
+        k2 = odeRHS(state + stepsize * k1 / 2)
+        k3 = odeRHS(state + stepsize * k2 / 2)
+        k4 = odeRHS(state + stepsize * k3)
+        
+        next_state = state + (stepsize / 6) * (k1 + 2*k2 + 2*k3 + k4)
+        return next_state
+        
     def _incrementRK4(self, odeRHS, currentState, stepsize):
-        t = currentState[0]
-        u = currentState[1]
-        h = stepsize
-        k1 = odeRHS(t, u)
-        k2 = odeRHS(t+h/2, u+h/2 * k1)
-        k3 = odeRHS(t+h/2, u+h/2 * k2)
-        k4 = odeRHS(t + h, u + h*k3)
+       
+        k1 = odeRHS(currentState)
+        k2 = odeRHS(currentState+stepsize/2 * k1)
+        k3 = odeRHS(currentState+stepsize/2 * k2)
+        k4 = odeRHS(currentState + stepsize*k3)
         increment = 1/6*k1 + 1/3*k2 + 1/3*k3 + 1/6*k4
         return increment
 
