@@ -98,7 +98,7 @@ def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: 
     us = combinedQoi.evalVec(ts)
 
     ode_Data = {
-        "T": N,
+        "N": N,
         "y": us.tolist(),
         "t0": ts[0]-0.0001,
         "ts": ts
