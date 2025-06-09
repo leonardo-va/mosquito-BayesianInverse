@@ -1,10 +1,7 @@
 import textwrap
-import json
-import quantityOfInterest
 from runModel import generateData
 
-
-def generate_stan_model_function(setup:dict):
+def _generate_stan_model_function(setup:dict):
     declaration = """vector sho(real t, vector u"""
     for paramName in setup["parameters"].keys():
         declaration += ", real "
@@ -19,7 +16,7 @@ def generate_stan_model_function(setup:dict):
     stan_function = declaration + body
     return stan_function
 
-def generate_stan_state_to_observable(setup:dict):
+def _generate_stan_state_to_observable(setup:dict):
     declaration = """vector qoi(vector u)"""
     body = "{" + f"vector[{len(setup['state_to_observable'])}] res;"
     for idx_equation, linearCombination in enumerate(setup['state_to_observable']):
@@ -36,43 +33,43 @@ def generate_stan_state_to_observable(setup:dict):
     state_to_obs_fct = declaration + body
     return state_to_obs_fct
 
-def generate_stan_initial_state(setup:dict):
+def _generate_stan_initial_state(setup:dict):
     initial_values = setup["initial_state"].values()
-    stan_initial_state = f"vector[{len(initial_values)}] y0Mean;"
-    for idx, val in initial_values:
-        stan_initial_state += f"y0Mean[{idx+1}] = {val};"
+    stan_initial_state = f"vector[{len(initial_values)}] initialState;"
+    for idx, val in enumerate(initial_values):
+        stan_initial_state += f"initialState[{idx+1}] = {val};"
     return stan_initial_state
 
-def generate_stan_parameters(setup:dict):
+def _generate_stan_parameters(setup:dict):
     stan_parameters = ""
     for paramName, paramVal in setup["parameters"].items():
         stan_parameters += f"real {paramName} = {paramVal};"
     return stan_parameters
 
-def generate_stan_solver_call(setup:dict):
+def _generate_stan_solver_call(setup:dict):
     relative_tolerance = 10**(-2)
     absolute_tolerance = 10**(-2)
     max_num_steps = 5000
     size_state = len(setup["initial_state"])
-    solver_call = f"array[N] vector[{size_state}] mu = ode_rk45_tol(sho, y0Mean, t0, ts, {relative_tolerance}, {absolute_tolerance}, {max_num_steps}"
+    solver_call = f"array[N] vector[{size_state}] mu = ode_rk45_tol(sho, initialState, t0, ts, {relative_tolerance}, {absolute_tolerance}, {max_num_steps}"
     for param in setup["parameters"].keys():
         solver_call += f", {param}"
     solver_call += ");"
     return solver_call
 
 def generate_stan_function_block(setup:dict):
-    sho = generate_stan_model_function(setup)
-    qoi = generate_stan_state_to_observable(setup)
+    sho = _generate_stan_model_function(setup)
+    qoi = _generate_stan_state_to_observable(setup)
     functionsBlock = f"""functions\u007b
     {sho}{qoi}\u007d"""
     return functionsBlock
 
 def generate_stan_data_block(setup:dict):
-    data_point_size = len(setup["state_to_observable"])
+    number_observables = len(setup["state_to_observable"])
     data_block = """data {
     int<lower=1> N;
     array[N] vector<lower=0>[""" 
-    data_block += str(data_point_size)
+    data_block += str(number_observables)
     data_block += """] y;
     real t0;
     array[N] real ts;
@@ -87,5 +84,49 @@ def generate_stan_parameters_block(setup:dict):
     return parameters_block
 
 def generate_stan_model_block(setup:dict):
-    pass
- 
+    fixed_parameters = [parameter for parameter in setup['parameters'] if parameter not in setup['inferred_parameters']]
+    model_block = """model {"""
+    
+    model_block_initial_state = _generate_stan_initial_state(setup=setup)
+    
+    model_block_fixed_parameters = ""
+    for fixed_parameter in fixed_parameters:
+        value = setup['parameters'][fixed_parameter]
+        model_block_fixed_parameters += f"real {fixed_parameter} = {value};"
+
+    model_block_solver_call = _generate_stan_solver_call(setup=setup)
+
+    model_block_priors = ""
+    for inferred_parameter, distribution in setup['inferred_parameters'].items():
+        model_block_priors += f"{inferred_parameter} ~ {distribution[0]}("
+        for distribution_parameter in distribution[1:]:
+            model_block_priors += f"{distribution_parameter},"  
+        if model_block_priors.endswith(","):
+            model_block_priors = model_block_priors[:-1]
+        model_block_priors += f") T[0,1];"
+    
+    model_block_noise = ""
+    observables = setup["state_to_observable"]
+    number_observables = len(observables)
+    observable_standard_deviation = setup["observable_standard_deviation"]
+    model_block_noise += f"array[N] vector[{number_observables}] q;"
+    model_block_noise += "for(t in 1:N){q[t] = qoi(mu[t]);}"
+    model_block_noise += f"for(t in 1:N)" + "{" + f"y[t] ~ normal(q[t], {observable_standard_deviation**2});" + "}"
+    
+    model_block += model_block_initial_state
+    model_block += model_block_fixed_parameters
+    model_block += model_block_solver_call
+    model_block += model_block_priors
+    model_block += model_block_noise
+    model_block += "}"
+    return model_block
+
+def generate_stan_ode_code(setup:dict):
+    
+    functionsBlock = generate_stan_function_block(setup)
+    dataBlock = generate_stan_data_block(setup)
+    parametersBlock = generate_stan_parameters_block(setup)
+    modelBlock = generate_stan_model_block(setup)
+    ode_code = functionsBlock + dataBlock + parametersBlock + modelBlock
+    
+    return ode_code

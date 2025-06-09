@@ -18,11 +18,6 @@
         "gamma_H" : 0.1818
     },
 
-    "inferred_parameters":{
-        "alpha": 0.5,
-        "mu_M": 0.5
-    },
-
     "ode_rhs":[
         "beta*(u[3]+u[4]+u[5]) - (delta_E+mu_E)*u[1]",
         "delta_E*u[1] - alpha*(u[2]^2) - mu_J*u[2] - delta_J*u[2]",
@@ -35,11 +30,6 @@
         "gamma_H*u[8] - mu_H*u[9]"
     ],
 
-    "state_to_observable":[
-        [0,0,1,1,1,0,0,0,0],
-        [0,1,0,0,0,0,0,0,0]
-    ],
-
     "initial_state":{
         "eggs":10000,
         "juveniles":10000,
@@ -50,5 +40,23 @@
         "exposed_h":1000,
         "infected_h":1000,
         "recovered_h":0
-    }
+    },
+
+    "time_interval": [0,10],
+    
+    "number_of_measurements": 100,
+    
+    "inferred_parameters":{
+        "alpha": ["lognormal",-13.1,0.5],
+        "mu_M": ["normal",0.1,0.1]
+    },
+
+    "state_to_observable":[
+        [0,0,1,1,1,0,0,0,0],
+        [0,1,0,0,0,0,0,0,0]
+    ],
+
+    "observable_standard_deviation": 5000,
+
+    "number_of_samples": 1000
 }
