@@ -183,8 +183,3 @@ def run():
     figSIR.show()
     figSIR.savefig('SIR.png')
     plt.waitforbuttonpress()
-
-
-
-
-
