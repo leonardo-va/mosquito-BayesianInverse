@@ -1,5 +1,5 @@
 import parametersDefault
-from odeSolver import ODESolver
+from odeSolver import ODESolver, stepRK4_pymc
 import numpy as np
 import visualization
 from matplotlib import pyplot as plt
@@ -28,14 +28,15 @@ def mosquitoModel(u, parameters, modelType="pytensor"):
     res8 = parameters[15]*u[7] - parameters[13]*u[8]
     
     if(modelType=="pytensor"):
-        return pt.stack([res0, res1, res2, res3, res4, res5, res6, res7, res8])
+        # return pt.stack([res0, res1, res2, res3, res4, res5, res6, res7, res8])
+        return res0,res1,res2,res3,res4,res5,res6,res7,res8
     else:
         return np.array([res0, res1, res2, res3, res4, res5, res6, res7, res8])
     
 
 def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: dict, quantitiesOfInterest : list, solverMethod = 'RK4')->dict:
     
-    initial = (timeInterval[0], list(initialCondition.values()))
+    initial = (timeInterval[0], np.array(list(initialCondition.values())))
     solver = ODESolver()
     _, interpolantMosquito = solver.solve(lambda u: mosquitoModel(u,list(parameters.values()), modelType="numpy"), timeInterval[1], initial, 0.001, solverMethod)
     ts = np.linspace(timeInterval[0], timeInterval[1], N)

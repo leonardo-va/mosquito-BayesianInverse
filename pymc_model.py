@@ -28,19 +28,23 @@ with pm.Model() as model:
     mu_M = pm.TruncatedNormal("mu_M", mu = parameters["mu_M"], sigma = 0.5)
     parameters["alpha"] = alpha
     parameters["mu_M"] = mu_M
+    parametersList = list(parameters.values())
     #Forward
-    # odeSolution = odeModel(list(parametersDefault.defaultInitialConditions.values()), list(parameters.values()))
-    # forwardSolution = []
-    # for qoi in quantitiesOfInterest:
-    #     forwardSolution.append(qoi(odeSolution[0]))
+    odeRHS = lambda u: mosquitoModel(u, parametersList, modelType="pytensor")
+    # Pytensor scan is a looping function
+    stepsize = 0.01
+    n_steps = timeInterval[1]/stepsize
+    print(list(initialConditions.values()))
+    # of = [pt.tensor.as_tensor_variable(val) for val in list(initialConditions.values())]
+    of = [0,0,0,0,0,0,0,0,0]
+    result, updates = pt.scan(
+        fn=lambda u0,u1,u2,u3,u4,u5,u6,u7,u8: solver.stepRK4_pymc(u0,u1,u2,u3,u4,u5,u6,u7,u8,odeRHS=odeRHS, stepsize=0.001),  # function
+        outputs_info=of,  # initial conditions
+        n_steps=n_steps,
+    )  # number of loops
 
     
-    # Pytensor scan is a looping function
-    # solver.solve(mosquitoModel, 10, initialConditions)
-    _, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,list(parameters.values())), 
-                                          timeInterval[1], 
-                                          (timeInterval[0], list(initialConditions.values())), 
-                                          stepsize, "RK4")
+    
     #Likelihood
     qoi = []
     for qoi in observedQuantities:

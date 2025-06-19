@@ -22,7 +22,15 @@ class PiecewiseLinearInterpolant():
     def codomainDim(self):
         return self.values.shape[1]
        
-
+def stepRK4_pymc(*state, odeRHS, stepsize=0.01):
+    
+        k1 = odeRHS(state)
+        k2 = odeRHS(state + stepsize * k1 / 2)
+        k3 = odeRHS(state + stepsize * k2 / 2)
+        k4 = odeRHS(state + stepsize * k3)
+        
+        next_state = state + (stepsize / 6) * (k1 + 2*k2 + 2*k3 + k4)
+        return next_state[0],next_state[1],next_state[2],next_state[3],next_state[4],next_state[5],next_state[6],next_state[7],next_state[8]
 class ODESolver():
     def solve(self, odeRHS, T, initialCondition, stepSize = 0.01, method="RK4")->PiecewiseLinearInterpolant:
         if T<initialCondition[0]:
@@ -44,7 +52,7 @@ class ODESolver():
         linearInterpolantSolution = PiecewiseLinearInterpolant(grid, solutionArray)
         return linearInterpolantSolution.eval(T), linearInterpolantSolution
 
-    def stepRK4_pymc(odeRHS, state, stepsize):
+    def stepRK4_pymc(self, *state, odeRHS, stepsize=0.01):
     
         k1 = odeRHS(state)
         k2 = odeRHS(state + stepsize * k1 / 2)
@@ -52,7 +60,7 @@ class ODESolver():
         k4 = odeRHS(state + stepsize * k3)
         
         next_state = state + (stepsize / 6) * (k1 + 2*k2 + 2*k3 + k4)
-        return next_state
+        return next_state[0],next_state[1],next_state[2],next_state[3],next_state[4],next_state[5],next_state[6],next_state[7],next_state[8]
         
     def _incrementRK4(self, odeRHS, currentState, stepsize):
        
