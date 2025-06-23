@@ -132,6 +132,9 @@ def generate_stan_ode_code(setup:dict):
     
     return ode_code
 
+def decrement(match):
+    num = int(match.group(1))
+    return f'u[{num - 1}]'
 def generate_py_model_function(setup:dict):
     # the model function takes a parameters vector, but the equations in the json use parameter names
     # Replace the parameter names with the expression parameters[index]
@@ -140,25 +143,31 @@ def generate_py_model_function(setup:dict):
     for equation in equations_with_param_names:
         equation_with_param_index = equation
         for idx, pname in enumerate(setup["parameters"].keys()):
-            pattern = rf'(?<![a-zA-Z0-9]){re.escape(pname)}(?![a-zA-Z0-9])'
+            pattern = rf'(?<![a-zA-Z0-9_]){re.escape(pname)}(?![a-zA-Z0-9_])'
             replacement = f'parameters[{idx}]'
             equation_with_param_index = re.sub(pattern, replacement, equation_with_param_index)
   
-        equation_with_param_index.replace("^", "**")
+        equation_with_param_index = equation_with_param_index.replace("^", "**")
         equations_with_param_index.append(equation_with_param_index)
     
     # indices in json equation start from 1 (because stan does so). For the python model, they 
     # need to be reduced by 1
-    for equation in equations_with_param_index:
-        pattern = r'u\[\s*(\d+)\s*\]'
-    
+    for idx,equation in enumerate(equations_with_param_index):
+        pattern = r'u\[(\d+)\]'
+        equation = re.sub(pattern, decrement, equation)
+        equations_with_param_index[idx] = equation
+  
+   
     def model_function(t, u, parameters):
+        # eval is really slow unfortunately
         u = u.T
         res = np.zeros((1,len(u))).squeeze()
         for idx, equation in enumerate(equations_with_param_index):
-            print(idx)
-            print(equation)
-            res[idx] = exec(equation)
+            res[idx] = eval(equation, {}, {
+                't': t,
+                'u': u,
+                'parameters': parameters,
+            })
         return res
     
     return model_function
