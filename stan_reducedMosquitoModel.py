@@ -28,7 +28,10 @@ df = fit.to_frame()
 samples_path = os.path.join('.', 'samples') 
 if not os.path.exists(samples_path):
     os.makedirs(samples_path)
-df.to_csv(f'samples/samples_{t.time()}.csv')
+samples_filename = f"samples/samples_{t.time()}"
+df.to_csv(f"{samples_filename}.csv")
+with open(f"{samples_filename}_setup.json", "w") as f:
+    json.dump(setup, f, indent=4)
 print(df.describe().T)
 
  

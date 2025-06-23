@@ -4,6 +4,12 @@ import numpy as np
 import visualization
 from matplotlib import pyplot as plt
 import quantityOfInterest
+from jsonToModelCode import generate_py_model_function
+import json
+
+setup_json_path = 'setup.json'
+with open(setup_json_path, 'r') as setup_file:
+    setup = json.load(setup_file)
 
 def mosquitoModel(t, u, parameters):
     '''
@@ -82,6 +88,8 @@ def mosquitoModel(t, u, parameters):
     res8 = parameters[15]*u[7] - parameters[13]*u[8]
     res = np.array([res0, res1, res2, res3, res4, res5, res6, res7, res8])
     return res.T
+
+mosquitoModel = generate_py_model_function(setup)
 
 def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: dict, quantitiesOfInterest : list, solverMethod = 'RK4')->dict:
     
@@ -185,6 +193,6 @@ def run():
     plt.waitforbuttonpress()
 
 
-
+run()
 
 

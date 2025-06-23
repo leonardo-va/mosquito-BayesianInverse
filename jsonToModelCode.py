@@ -1,5 +1,6 @@
 import textwrap
-from runModel import generateData
+import numpy as np
+import re
 
 def _generate_stan_model_function(setup:dict):
     declaration = """vector sho(real t, vector u"""
@@ -130,3 +131,35 @@ def generate_stan_ode_code(setup:dict):
     ode_code = functionsBlock + dataBlock + parametersBlock + modelBlock
     
     return ode_code
+
+def generate_py_model_function(setup:dict):
+    # the model function takes a parameters vector, but the equations in the json use parameter names
+    # Replace the parameter names with the expression parameters[index]
+    equations_with_param_names = setup["ode_rhs"]
+    equations_with_param_index = []
+    for equation in equations_with_param_names:
+        equation_with_param_index = equation
+        for idx, pname in enumerate(setup["parameters"].keys()):
+            pattern = rf'(?<![a-zA-Z0-9]){re.escape(pname)}(?![a-zA-Z0-9])'
+            replacement = f'parameters[{idx}]'
+            equation_with_param_index = re.sub(pattern, replacement, equation_with_param_index)
+  
+        equation_with_param_index.replace("^", "**")
+        equations_with_param_index.append(equation_with_param_index)
+    
+    # indices in json equation start from 1 (because stan does so). For the python model, they 
+    # need to be reduced by 1
+    for equation in equations_with_param_index:
+        pattern = r'u\[\s*(\d+)\s*\]'
+    
+    def model_function(t, u, parameters):
+        u = u.T
+        res = np.zeros((1,len(u))).squeeze()
+        for idx, equation in enumerate(equations_with_param_index):
+            print(idx)
+            print(equation)
+            res[idx] = exec(equation)
+        return res
+    
+    return model_function
+
