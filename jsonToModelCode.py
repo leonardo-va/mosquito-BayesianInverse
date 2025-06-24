@@ -132,10 +132,11 @@ def generate_stan_ode_code(setup:dict):
     
     return ode_code
 
-def decrement(match):
-    num = int(match.group(1))
-    return f'u[{num - 1}]'
 def generate_py_model_function(setup:dict):
+    '''
+    Generates and returns a python function from the \"parameters\" and \"ode_rhs\" fields in the setup.json, that evaluates the ode right hand side.
+    The generated function arguments are: func(t, u : np.array, parameters : np.array)->np.array
+    '''
     # the model function takes a parameters vector, but the equations in the json use parameter names
     # Replace the parameter names with the expression parameters[index]
     equations_with_param_names = setup["ode_rhs"]
@@ -154,21 +155,20 @@ def generate_py_model_function(setup:dict):
     # need to be reduced by 1
     for idx,equation in enumerate(equations_with_param_index):
         pattern = r'u\[(\d+)\]'
-        equation = re.sub(pattern, decrement, equation)
+        equation = re.sub(pattern, lambda match: f'u[{int(match.group(1))-1}]', equation)
         equations_with_param_index[idx] = equation
-  
-   
-    def model_function(t, u, parameters):
-        # eval is really slow unfortunately
-        u = u.T
-        res = np.zeros((1,len(u))).squeeze()
-        for idx, equation in enumerate(equations_with_param_index):
-            res[idx] = eval(equation, {}, {
-                't': t,
-                'u': u,
-                'parameters': parameters,
-            })
-        return res
+    
+    # build a string that defines the model function
+    modelFuncString = """def model_function(t, u, parameters):\n\tu = u.T\n\tres = np.zeros((1,len(u))).squeeze()"""
+    for idx, equation in enumerate(equations_with_param_index):
+        modelFuncString += "\n\t"
+        modelFuncString += f"res[{idx}] = {equation}"
+    modelFuncString += "\n\t"
+    modelFuncString += "return res"
+    
+    # execute the model function definition, store it in a local namespace so it can be accessed
+    modelFuncNamespace = {}
+    exec(modelFuncString, {'np':np}, modelFuncNamespace)
+    model_function = modelFuncNamespace['model_function']
     
     return model_function
-
