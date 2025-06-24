@@ -1,4 +1,3 @@
-import textwrap
 import numpy as np
 import re
 
@@ -123,7 +122,10 @@ def generate_stan_model_block(setup:dict):
     return model_block
 
 def generate_stan_ode_code(setup:dict):
-    
+    '''
+    Generates and returns the stan program code string from the setup.json.
+    Stan can then compile this.
+    '''
     functionsBlock = generate_stan_function_block(setup)
     dataBlock = generate_stan_data_block(setup)
     parametersBlock = generate_stan_parameters_block(setup)
@@ -163,8 +165,7 @@ def generate_py_model_function(setup:dict):
     for idx, equation in enumerate(equations_with_param_index):
         modelFuncString += "\n\t"
         modelFuncString += f"res[{idx}] = {equation}"
-    modelFuncString += "\n\t"
-    modelFuncString += "return res"
+    modelFuncString += "\n\treturn res"
     
     # execute the model function definition, store it in a local namespace so it can be accessed
     modelFuncNamespace = {}
