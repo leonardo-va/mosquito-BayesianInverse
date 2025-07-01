@@ -11,7 +11,7 @@ def sample(stan_code:str, data:dict, num_samples:int):
     return df
 
 def save_samples(samples_dataframe, folder_path, setup:dict = None):
-    print("************", folder_path)
+    print("saving samples to: ", folder_path)
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     samples_filename = f"samples_{t.time()}"
