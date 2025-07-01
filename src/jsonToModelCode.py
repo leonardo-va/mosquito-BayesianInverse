@@ -1,5 +1,8 @@
+
 import numpy as np
 import re
+
+
 
 def _generate_stan_model_function(setup:dict):
     declaration = """vector sho(real t, vector u"""
@@ -122,10 +125,7 @@ def generate_stan_model_block(setup:dict):
     return model_block
 
 def generate_stan_ode_code(setup:dict):
-    '''
-    Generates and returns the stan program code string from the setup.json.
-    Stan can then compile this.
-    '''
+    
     functionsBlock = generate_stan_function_block(setup)
     dataBlock = generate_stan_data_block(setup)
     parametersBlock = generate_stan_parameters_block(setup)
@@ -135,10 +135,6 @@ def generate_stan_ode_code(setup:dict):
     return ode_code
 
 def generate_py_model_function(setup:dict):
-    '''
-    Generates and returns a python function from the \"parameters\" and \"ode_rhs\" fields in the setup.json, that evaluates the ode right hand side.
-    The generated function arguments are: func(t, u : np.array, parameters : np.array)->np.array
-    '''
     # the model function takes a parameters vector, but the equations in the json use parameter names
     # Replace the parameter names with the expression parameters[index]
     equations_with_param_names = setup["ode_rhs"]
@@ -146,30 +142,26 @@ def generate_py_model_function(setup:dict):
     for equation in equations_with_param_names:
         equation_with_param_index = equation
         for idx, pname in enumerate(setup["parameters"].keys()):
-            pattern = rf'(?<![a-zA-Z0-9_]){re.escape(pname)}(?![a-zA-Z0-9_])'
+            pattern = rf'(?<![a-zA-Z0-9]){re.escape(pname)}(?![a-zA-Z0-9])'
             replacement = f'parameters[{idx}]'
             equation_with_param_index = re.sub(pattern, replacement, equation_with_param_index)
   
-        equation_with_param_index = equation_with_param_index.replace("^", "**")
+        equation_with_param_index.replace("^", "**")
         equations_with_param_index.append(equation_with_param_index)
     
     # indices in json equation start from 1 (because stan does so). For the python model, they 
     # need to be reduced by 1
-    for idx,equation in enumerate(equations_with_param_index):
-        pattern = r'u\[(\d+)\]'
-        equation = re.sub(pattern, lambda match: f'u[{int(match.group(1))-1}]', equation)
-        equations_with_param_index[idx] = equation
+    for equation in equations_with_param_index:
+        pattern = r'u\[\s*(\d+)\s*\]'
     
-    # build a string that defines the model function
-    modelFuncString = """def model_function(t, u, parameters):\n\tu = u.T\n\tres = np.zeros((1,len(u))).squeeze()"""
-    for idx, equation in enumerate(equations_with_param_index):
-        modelFuncString += "\n\t"
-        modelFuncString += f"res[{idx}] = {equation}"
-    modelFuncString += "\n\treturn res"
-    
-    # execute the model function definition, store it in a local namespace so it can be accessed
-    modelFuncNamespace = {}
-    exec(modelFuncString, {'np':np}, modelFuncNamespace)
-    model_function = modelFuncNamespace['model_function']
+    def model_function(t, u, parameters):
+        u = u.T
+        res = np.zeros((1,len(u))).squeeze()
+        for idx, equation in enumerate(equations_with_param_index):
+            print(idx)
+            print(equation)
+            res[idx] = exec(equation)
+        return res
     
     return model_function
+
