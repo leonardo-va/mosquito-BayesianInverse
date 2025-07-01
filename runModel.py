@@ -38,6 +38,10 @@ def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: 
 
 
 def run():
+    '''
+    Calculate some trajectories of the ode-model specified in setup.json. (For different values of the parameter alpha) 
+    The results are displayed and saved as png. 
+    '''
     alphas = [10**(-6), 2*10**(-6),2.5*10**(-6),3*10**(-6),4*10**(-6),6*10**(-6)]
     parametersList = []
     for alpha in alphas:
@@ -115,6 +119,8 @@ def run():
     figSIR.savefig('SIR.png')
     plt.waitforbuttonpress()
 
+if __name__ == "__main__":
+    run()
 
 
 

@@ -97,13 +97,13 @@ def generate_stan_model_block(setup:dict):
     model_block_solver_call = _generate_stan_solver_call(setup=setup)
 
     model_block_priors = ""
-    for inferred_parameter, distribution in setup['inferred_parameters'].items():
-        model_block_priors += f"{inferred_parameter} ~ {distribution[0]}("
-        for distribution_parameter in distribution[1:]:
+    for inferred_parameter, prior in setup['inferred_parameters'].items():
+        model_block_priors += f"{inferred_parameter} ~ {prior['distribution']}("
+        for distribution_parameter in prior['parameters']:
             model_block_priors += f"{distribution_parameter},"  
         if model_block_priors.endswith(","):
             model_block_priors = model_block_priors[:-1]
-        model_block_priors += f") T[0,1];"
+        model_block_priors += f") T[{prior['bounds'][0]},{prior['bounds'][1]}];"
     
     model_block_noise = ""
     observables = setup["state_to_observable"]
