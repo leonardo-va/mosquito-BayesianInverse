@@ -36,7 +36,6 @@ def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4',
     alphas = [10**(-6), 2*10**(-6),2.5*10**(-6),3*10**(-6),4*10**(-6),6*10**(-6)]
     parametersList = []
     for alpha in alphas:
-        # newParameters = parametersDefault.defaultParameters.copy()
         newParameters = parameters.copy()
         newParameters["alpha"] = alpha
         parametersList.append(newParameters)

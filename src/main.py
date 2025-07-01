@@ -5,6 +5,7 @@ from jsonToModelCode import generate_py_model_function, generate_stan_ode_code
 import runModel
 import runSampler
 import quantityOfInterest
+# from parametersDefault import generateDefaultSetup
 
 def _get_root_dir():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +34,7 @@ def main():
     parameters = setup['parameters']
     initial_state = setup['initial_state']
 
+    # generateDefaultSetup(os.path.join(_get_root_dir(), "defaultsetup.json"))
     # solve the model equation and generate some plots (this is just for visualizing, and is not necessary for sampling)
     runModel.run(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
 
