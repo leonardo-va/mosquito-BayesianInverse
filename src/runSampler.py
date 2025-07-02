@@ -20,3 +20,4 @@ def save_samples(samples_dataframe, folder_path, setup:dict = None):
     if(setup is not None):
         with open(os.path.join(folder_path, f"{samples_filename}_setup.json"), "w") as f:
             json.dump(setup, f, indent=4)
+    return samples_csv_path

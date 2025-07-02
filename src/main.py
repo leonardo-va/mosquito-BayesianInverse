@@ -53,8 +53,11 @@ def main():
     # build and run the sampler 
     samples_dataframe = runSampler.sample(stan_code = stan_code, data = data, num_samples = setup["number_of_samples"])
 
-    runSampler.save_samples(samples_dataframe, os.path.join(_get_root_dir(), "samples"), setup)
+    samples_csv_path = runSampler.save_samples(samples_dataframe, os.path.join(_get_root_dir(), "samples"), setup)
 
-    sampleEvaluation(samples_dataframe, setup["parameters"])
+    f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png"
+    sampleEvaluation(samples_dataframe, 
+                     generateDataParameters=setup["parameters"], 
+                     saveResultPath=f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png")
 
 main()

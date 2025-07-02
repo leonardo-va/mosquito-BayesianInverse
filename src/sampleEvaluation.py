@@ -5,30 +5,37 @@ import json
 import argparse
 import os
 
-def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None):
+def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, saveResultPath = None):
     inferedParameterNames = []
     for colname in samplesDF.columns.tolist():
         if (not colname.endswith("__") and not colname=='draws'):
             inferedParameterNames.append(colname)
     nSubplotRows = int(np.ceil(len(inferedParameterNames)/3))
-    nBins = 50
-    fig, axs = plt.subplots(nSubplotRows,3)
+    nSamples = samplesDF.shape[0]
+    nBins = int(np.ceil(nSamples/100))
+    fig, axs = plt.subplots(nSubplotRows,3,figsize=(16,11))
     if(nSubplotRows == 1):
         axs = np.expand_dims(axs, axis=0)
     for idx, parameterName in enumerate(inferedParameterNames):
         fig_row, fig_col = int(np.floor(idx/3)),idx%3
         currentAx = axs[fig_row, fig_col]
         samples = samplesDF[parameterName]
-        print(f"samples mean {parameterName}: {np.mean(samples)}")
-        currentAx.hist(samples,nBins)
+        samplesMean = np.mean(samples)
+        print(f"samples mean {parameterName}: {samplesMean}")
+        currentAx.hist(samples,nBins,alpha=0.6)
         if(generateDataParameters is not None):
-            currentAx.axvline(generateDataParameters[parameterName], color='red')
+            currentAx.axvline(generateDataParameters[parameterName], color='lightgreen', label=f"true value: {generateDataParameters[parameterName]:.4g}")
+            currentAx.axvline(samplesMean, color='red', label=f"samples mean: {samplesMean:.4g}")
         currentAx.set_title(parameterName)
+        currentAx.legend()
+    if(saveResultPath is not None):
+        fig.savefig(saveResultPath)
     plt.show()
 
 def sample_evaluation_from_csv(samples_csv_path:str, generate_data_parameters:dict=None):
     samplesDF = read_csv(samples_csv_path)
-    sampleEvaluation(samplesDF, generate_data_parameters)
+    save_evaluation_path = f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png"
+    sampleEvaluation(samplesDF, generate_data_parameters, save_evaluation_path)
 
 def main():
     parser = argparse.ArgumentParser()
