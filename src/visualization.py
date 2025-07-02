@@ -50,6 +50,3 @@ def plotMosquitoPopulation(solutionInterpolant: PiecewiseLinearInterpolant):
     plt.title('Mosquito Population Over Time')
     plt.legend()
     plt.show()
-
-# Host SEIR
-# Mosq SEI

@@ -1,25 +1,19 @@
-import parametersDefault
+
 from odeSolver import ODESolver
 import numpy as np
+import os
 import visualization
 from matplotlib import pyplot as plt
 import quantityOfInterest
 from jsonToModelCode import generate_py_model_function
-import json
-
-setup_json_path = 'setup.json'
-with open(setup_json_path, 'r') as setup_file:
-    setup = json.load(setup_file)
 
 
-mosquitoModel = generate_py_model_function(setup)
-
-def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: dict, quantitiesOfInterest : list, solverMethod = 'RK4')->dict:
+def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:int, timeInterval: list, parameters: dict, initialState: dict, solverMethod = 'RK4')->dict:
     
-    initial = (timeInterval[0], list(initialCondition.values()))
+    initial = (timeInterval[0], list(initialState.values()))
     solver = ODESolver()
     _, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,list(parameters.values())), timeInterval[1], initial, 0.01, solverMethod)
-    ts = np.linspace(timeInterval[0], timeInterval[1], N)
+    ts = np.linspace(timeInterval[0], timeInterval[1], numberObservations)
     us = interpolantMosquito.evalVec(ts)
     combinedQoi = quantitiesOfInterest[0](interpolantMosquito)
     for idx, qoi in enumerate(quantitiesOfInterest):
@@ -29,7 +23,7 @@ def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: 
     us = combinedQoi.evalVec(ts)
 
     ode_Data = {
-        "N": N,
+        "N": numberObservations,
         "y": us.tolist(),
         "t0": ts[0]-0.0001,
         "ts": ts
@@ -37,16 +31,12 @@ def generateData(N:int, timeInterval: list, parameters: dict, initialCondition: 
     return ode_Data
 
 
-def run():
-    '''
-    Calculate some trajectories of the ode-model specified in setup.json. (For different values of the parameter alpha) 
-    The results are displayed and saved as png. 
-    '''
+def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4', save_png_dir = None):
+    
     alphas = [10**(-6), 2*10**(-6),2.5*10**(-6),3*10**(-6),4*10**(-6),6*10**(-6)]
     parametersList = []
     for alpha in alphas:
-        # newParameters = parametersDefault.defaultParameters.copy()
-        newParameters = setup['parameters'].copy()
+        newParameters = parameters.copy()
         newParameters["alpha"] = alpha
         parametersList.append(newParameters)
     
@@ -58,9 +48,9 @@ def run():
         _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                     list(params.values())), 
                                                     T=40,
-                                                    initialCondition=(0,np.array(list(setup['initial_state'].values())).reshape(9,-1)),
+                                                    initialCondition=(0,np.array(list(initialState.values())).reshape(9,-1)),
                                                     stepSize = 0.01,
-                                                    method="RK4")
+                                                    method=solverMethod)
         eggs = quantityOfInterest.eggs(solutionInterpolant)
         juveniles = quantityOfInterest.juveniles(solutionInterpolant)
         total = quantityOfInterest.numberOfMosquitos(solutionInterpolant)
@@ -79,16 +69,17 @@ def run():
     
     figMosquitoPop.tight_layout()
     figMosquitoPop.show()
-    figMosquitoPop.savefig('MosquitoPop.png')
+    if(save_png_dir is not None):
+        figMosquitoPop.savefig(os.path.join(save_png_dir, 'MosquitoPop.png'))
     plt.waitforbuttonpress()
 
     figSIR, axesSIR = plt.subplots(2,4,figsize=(15,10))
     _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
-                                                list(setup['parameters'].values())), 
+                                                list(parameters.values())), 
                                                 T=40,
-                                                initialCondition=(0,np.array(list(setup['initial_state'].values())).reshape(9,-1)),
+                                                initialCondition=(0,np.array(list(initialState.values())).reshape(9,-1)),
                                                 stepSize = 0.01,
-                                                method="RK4")
+                                                method=solverMethod)
     S_m = quantityOfInterest.S_Mosquitoes(solutionInterpolant)
     E_m = quantityOfInterest.E_Mosquitoes(solutionInterpolant)
     I_m = quantityOfInterest.I_Mosquitoes(solutionInterpolant)
@@ -116,11 +107,13 @@ def run():
 
     figSIR.tight_layout()
     figSIR.show()
-    figSIR.savefig('SIR.png')
+    if(save_png_dir is not None):
+        figSIR.savefig(os.path.join(save_png_dir, 'SIR.png'))
     plt.waitforbuttonpress()
 
 if __name__ == "__main__":
     run()
+
 
 
 
