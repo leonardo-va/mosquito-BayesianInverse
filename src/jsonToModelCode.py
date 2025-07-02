@@ -103,7 +103,10 @@ def generate_stan_model_block(setup:dict):
             model_block_priors += f"{distribution_parameter},"  
         if model_block_priors.endswith(","):
             model_block_priors = model_block_priors[:-1]
-        model_block_priors += f") T[{prior['bounds'][0]},{prior['bounds'][1]}];"
+        model_block_priors += f");"
+        if "bounds" in prior:
+            model_block_priors = model_block_priors[:-1]
+            model_block_priors += f" T[{prior['bounds'][0]},{prior['bounds'][1]}];"
     
     model_block_noise = ""
     observables = setup["state_to_observable"]

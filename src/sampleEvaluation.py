@@ -1,34 +1,34 @@
-from pandas import read_csv
+from pandas import read_csv, DataFrame
 from matplotlib import pyplot as plt
 import numpy as np
 import json
 import argparse
 import os
 
-def sampleEvaluation(samplesCSVPath:str, inferedParameterNames:list[str] , generateDataParameters:dict):
-    samplesDF = read_csv(samplesCSVPath)
+def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None):
+    inferedParameterNames = []
+    for colname in samplesDF.columns.tolist():
+        if (not colname.endswith("__") and not colname=='draws'):
+            inferedParameterNames.append(colname)
     nSubplotRows = int(np.ceil(len(inferedParameterNames)/3))
     nBins = 50
-    print(inferedParameterNames)
     fig, axs = plt.subplots(nSubplotRows,3)
     if(nSubplotRows == 1):
         axs = np.expand_dims(axs, axis=0)
-    print(axs.shape)
     for idx, parameterName in enumerate(inferedParameterNames):
         fig_row, fig_col = int(np.floor(idx/3)),idx%3
         currentAx = axs[fig_row, fig_col]
         samples = samplesDF[parameterName]
-        print(f"mean {parameterName}: {np.mean(samples)}")
+        print(f"samples mean {parameterName}: {np.mean(samples)}")
         currentAx.hist(samples,nBins)
-        currentAx.axvline(generateDataParameters[parameterName], color='red')
+        if(generateDataParameters is not None):
+            currentAx.axvline(generateDataParameters[parameterName], color='red')
         currentAx.set_title(parameterName)
     plt.show()
 
-
-setup_json_path = 'setup.json'
-with open(setup_json_path, 'r') as setup_file:
-    setup = json.load(setup_file)
-sampleEvaluation("samples/samples_1749310374.1408446.csv", setup["inferred_parameters"], setup["parameters"])
+def sample_evaluation_from_csv(samples_csv_path:str, generate_data_parameters:dict=None):
+    samplesDF = read_csv(samples_csv_path)
+    sampleEvaluation(samplesDF, generate_data_parameters)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -38,18 +38,20 @@ def main():
     if not os.path.isfile(args.sample_path):
         print(f"Error: '{args.sample_path}' is not a valid file.")
         return
-    
-    setup_json_path = 'setup.json'
-    os.path.splitext()
-    samples_timestamp = args.sample_path.split("_")[1]
-    setup_json_path.rstrip(".csv")
-    with open(setup_json_path, 'r') as setup_file:
-        setup = json.load(setup_file)
-
-    sampleEvaluation(args.sample_path)
-    print(f"Processing file: {args.sample_path}")
-    # Add your logic here
+    print(f"Evaluating samples: {args.sample_path}")
+    sample_path_no_extension = os.path.splitext(args.sample_path)[0]
+    setup_json_path = f"{sample_path_no_extension}_setup.json"
+    print(setup_json_path)
+    if os.path.isfile(setup_json_path):
+        with open(setup_json_path, 'r') as setup_file:
+            setup = json.load(setup_file)
+            generate_data_parameters = setup["parameters"]
+            sample_evaluation_from_csv(args.sample_path, generate_data_parameters)
+        return
+    else:
+        sample_evaluation_from_csv(args.sample_path)
+        return
 
 
 if __name__ == "__main__":
-    sampleEvaluation()
+    main()

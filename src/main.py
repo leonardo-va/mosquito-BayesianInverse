@@ -5,6 +5,7 @@ from jsonToModelCode import generate_py_model_function, generate_stan_ode_code
 import runModel
 import runSampler
 import quantityOfInterest
+from sampleEvaluation import sampleEvaluation
 # from parametersDefault import generateDefaultSetup
 
 def _get_root_dir():
@@ -52,6 +53,8 @@ def main():
     # build and run the sampler 
     samples_dataframe = runSampler.sample(stan_code = stan_code, data = data, num_samples = setup["number_of_samples"])
 
-    runSampler.save_samples(samples_dataframe = samples_dataframe, folder_path = os.path.join(_get_root_dir(), "samples"), setup=setup)
+    runSampler.save_samples(samples_dataframe, os.path.join(_get_root_dir(), "samples"), setup)
+
+    sampleEvaluation(samples_dataframe, setup["parameters"])
 
 main()
