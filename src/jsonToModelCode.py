@@ -2,14 +2,18 @@ import numpy as np
 import re
 
 def _generate_stan_model_function(setup:dict):
-    declaration = """vector sho(real t, vector u"""
+    declaration = """vector sho(real t, vector x"""
     for paramName in setup["parameters"].keys():
         declaration += ", real "
         declaration += paramName
     declaration += ")"
 
-    lenght_state = len(setup["initial_state"])
-    body = "{ vector[" + str(lenght_state) + "] res;"
+    length_state = len(setup["initial_state"])
+    body = "{" + f"vector[{length_state}] u;"
+    body += f"u = fmax(x, rep_vector(0, {length_state}));"
+    # body = "{" + f"for(i in 1:{length_state})" + "{"
+    # body += (f"if(u[i]<0)" + "{u[i]=0;}" + "}")
+    body += "vector[" + str(length_state) + "] res;"
     for idx, equation in enumerate(setup["ode_rhs"]):
         body += f"res[{idx+1}] = {equation};"
     body += "return res; }"
@@ -165,9 +169,10 @@ def generate_py_model_function(setup:dict):
     
     # build a string that defines the model function
     modelFuncString = """def model_function(t, u, parameters):\n\tu = u.T\n\tres = np.zeros((1,len(u))).squeeze()"""
+    modelFuncString += "\n\tu[u<0]=0"
     for idx, equation in enumerate(equations_with_param_index):
         modelFuncString += "\n\t"
-        modelFuncString += f"res[{idx}] = {equation}"
+        modelFuncString += f"res[{idx}] = {equation}\n\t"
     modelFuncString += "\n\treturn res"
     
     # execute the model function definition, store it in a local namespace so it can be accessed

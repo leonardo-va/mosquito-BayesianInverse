@@ -6,14 +6,14 @@ import runModel
 import runSampler
 import quantityOfInterest
 from sampleEvaluation import sampleEvaluation
-# from parametersDefault import generateDefaultSetup
+
 
 def _get_root_dir():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(current_dir)
     return parent_dir
 
-def _get_default_setup_path():
+def _get_setup_path():
     root_dir = _get_root_dir()
     default_setup_path = os.path.join(root_dir, "setup.json")
     return default_setup_path
@@ -21,9 +21,10 @@ def _get_default_setup_path():
 def main():
 
     # take the path to setup.json as a commandline argument, also give setup.json in the parent directory as default argument
-    default_setup_path = _get_default_setup_path()
+    
+    setup_path_default_arg = _get_setup_path()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--setup", default = default_setup_path, type=str, help="Path to the setup.json file")
+    parser.add_argument("--setup", default = setup_path_default_arg, type=str, help="Path to the setup.json file")
     args = parser.parse_args()
 
     with open(args.setup, 'r') as setup_file:
@@ -60,4 +61,5 @@ def main():
                      generateDataParameters=setup["parameters"], 
                      saveResultPath=f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png")
 
-main()
+if __name__ == "__main__":
+    main()
