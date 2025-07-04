@@ -42,21 +42,27 @@
         "recovered_h":0
     },
 
-    "time_interval": [0,10],
+    "time_interval": [0,20],
     
-    "number_of_measurements": 100,
+    "number_of_measurements": 200,
     
     "inferred_parameters":{
-        "alpha": {"distribution":"lognormal", "parameters":[-13.1,0.5], "bounds":[0,1]},
+        "alpha": {"distribution":"lognormal", "parameters":[-13.1,0.5]},
         "mu_M": {"distribution":"normal", "parameters":[0.1,0.1], "bounds":[0,1]}
     },
 
     "state_to_observable":[
-        [0,0,1,1,1,0,0,0,0],
-        [0,1,0,0,0,0,0,0,0]
+        {
+            "linear_combination":[0,0,1,1,1,0,0,0,0],
+            "name":"number of mosquitoes"
+        },
+        {
+            "linear_combination":[0,1,0,0,0,0,0,0,0],
+            "name":"number of juveniles"
+        }
     ],
 
-    "observable_standard_deviation": 5000,
+    "observable_standard_deviation": 3000,
 
     "number_of_samples": 1000
 }

@@ -56,8 +56,14 @@ def generateDefaultSetup(setup_file_path):
     },
 
     "state_to_observable":[
-        [0,0,1,1,1,0,0,0,0],
-        [0,1,0,0,0,0,0,0,0]
+        {
+            "linear_combination":[0,0,1,1,1,0,0,0,0],
+            "name":"number of mosquitoes"
+        },
+        {
+            "linear_combination":[0,1,0,0,0,0,0,0,0],
+            "name":"number of juveniles"
+        }
     ],
 
     "observable_standard_deviation": 5000,

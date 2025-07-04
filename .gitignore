@@ -1,4 +1,6 @@
-/build
+*build*
 __pycache__
 *.png
 *samples*
+py_model_function.txt
+stan_code.txt

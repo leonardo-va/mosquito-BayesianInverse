@@ -5,7 +5,7 @@ from jsonToModelCode import generate_py_model_function, generate_stan_ode_code
 import runModel
 import runSampler
 import quantityOfInterest
-from sampleEvaluation import sampleEvaluation
+import sampleEvaluation
 
 
 def _get_root_dir():
@@ -19,7 +19,6 @@ def _get_setup_path():
     return default_setup_path
 
 def main():
-
     # take the path to setup.json as a commandline argument, also give setup.json in the parent directory as default argument
     
     setup_path_default_arg = _get_setup_path()
@@ -31,8 +30,10 @@ def main():
         setup = json.load(setup_file)
 
     # generate the model function, parameters, and stan code from the setup
-    mosquito_model = generate_py_model_function(setup)
-    stan_code = generate_stan_ode_code(setup)
+    generated_stan_code_file = os.path.join(_get_root_dir(), "stan_code.txt")
+    generated_py_function_file = os.path.join(_get_root_dir(), "py_model_function.txt")
+    mosquito_model = generate_py_model_function(setup, generated_py_function_file)
+    stan_code = generate_stan_ode_code(setup, generated_stan_code_file)
     parameters = setup['parameters']
     initial_state = setup['initial_state']
 
@@ -42,7 +43,8 @@ def main():
 
     # generate data for the sampler
     observables = []
-    for linearCoefficients in setup["state_to_observable"]:
+    for observable in setup["state_to_observable"]:
+        linearCoefficients = observable["linear_combination"]
         observables.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
     data = runModel.generateData(mosquito_model, 
                                  quantitiesOfInterest = observables,
@@ -57,9 +59,10 @@ def main():
     samples_csv_path = runSampler.save_samples(samples_dataframe, os.path.join(_get_root_dir(), "samples"), setup)
 
     f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png"
-    sampleEvaluation(samples_dataframe, 
+    sampleEvaluation.sampleEvaluation(samples_dataframe, 
                      generateDataParameters=setup["parameters"], 
                      saveResultPath=f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png")
+    sampleEvaluation.compare_observables(samples_dataframe, setup)
 
 if __name__ == "__main__":
     main()

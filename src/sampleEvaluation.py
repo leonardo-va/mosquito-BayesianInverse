@@ -4,6 +4,9 @@ import numpy as np
 import json
 import argparse
 import os
+import odeSolver
+from jsonToModelCode import generate_py_model_function
+import visualization
 
 def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, saveResultPath = None):
     inferedParameterNames = []
@@ -37,6 +40,27 @@ def sample_evaluation_from_csv(samples_csv_path:str, generate_data_parameters:di
     save_evaluation_path = f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png"
     sampleEvaluation(samplesDF, generate_data_parameters, save_evaluation_path)
 
+def compare_observables(samplesDF, setup:dict):
+    real_parameters = setup["parameters"]
+    posterior_prameters = real_parameters.copy()
+
+    for idx, parameterName in enumerate(setup["inferred_parameters"]):
+        samples = samplesDF[parameterName]
+        samplesMean = np.mean(samples)
+        posterior_prameters[parameterName] = samplesMean
+
+    solver = odeSolver.ODESolver()    
+    model_function = generate_py_model_function(setup)
+    _, solution_interpolant_real = solver.solve(lambda t,u: model_function(t,u,list(real_parameters.values())), 
+                                            setup["time_interval"][1], 
+                                            (setup["time_interval"][0],list(setup["initial_state"].values())))
+    _, solution_interpolant_posterior = solver.solve(lambda t,u: model_function(t,u,list(posterior_prameters.values())),
+                                                  setup["time_interval"][1],
+                                                  (setup["time_interval"][0],list(setup["initial_state"].values())))
+    visualization.plotMosquitoPopulation([solution_interpolant_real, solution_interpolant_posterior])
+    visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior, setup["state_to_observable"][0]["linear_combination"])
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("sample_path", type=str, help="Path to the samples file")
@@ -54,6 +78,8 @@ def main():
             setup = json.load(setup_file)
             generate_data_parameters = setup["parameters"]
             sample_evaluation_from_csv(args.sample_path, generate_data_parameters)
+            samplesDF = read_csv(args.sample_path)
+            compare_observables(samplesDF, setup)
         return
     else:
         sample_evaluation_from_csv(args.sample_path)

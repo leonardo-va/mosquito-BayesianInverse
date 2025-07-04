@@ -36,17 +36,27 @@ def plotMosquitoToHostRatio(solutionInterpolant: PiecewiseLinearInterpolant):
     plt.plot(ratioInterpolant.grid, ratioInterpolant.values)
     plt.show()
 
-def plotMosquitoPopulation(solutionInterpolant: PiecewiseLinearInterpolant):
+def plotMosquitoPopulation(solutionInterpolants: list[PiecewiseLinearInterpolant]):
     # Mosquito Eggs/Juveniles/Total
-    eggs = quantityOfInterest.eggs(solutionInterpolant)
-    juveniles = quantityOfInterest.juveniles(solutionInterpolant)
-    total = quantityOfInterest.numberOfMosquitos(solutionInterpolant)
-    plt.plot(eggs.grid, eggs.values, label='Eggs', color='blue')
-    plt.plot(juveniles.grid, juveniles.values, label='Juveniles', color='green')
-    plt.plot(total.grid, total.values, label='Total Mosquitos', color='red')
-   
+    
+    for solutionInterpolant in solutionInterpolants:
+        eggs = quantityOfInterest.eggs(solutionInterpolant)
+        juveniles = quantityOfInterest.juveniles(solutionInterpolant)
+        total = quantityOfInterest.numberOfMosquitos(solutionInterpolant)
+        plt.plot(eggs.grid, eggs.values, label='Eggs')
+        plt.plot(juveniles.grid, juveniles.values, label='Juveniles')
+        plt.plot(total.grid, total.values, label='Total Mosquitos')
+    
     plt.xlabel('Time')
     plt.ylabel('Population')
     plt.title('Mosquito Population Over Time')
     plt.legend()
+    plt.show()
+
+def compare_qoi(solution_interpolant1, solution_interpolant2, linear_qoi_coefficients):
+    qoi1 = quantityOfInterest.linearCombinationQOI(solution_interpolant1, linear_qoi_coefficients)
+    qoi2 = quantityOfInterest.linearCombinationQOI(solution_interpolant2, linear_qoi_coefficients)
+    fig, axs = plt.subplots(1,1,figsize=(12,8))
+    axs.plot(qoi1.grid, qoi1.values, label="qoi1", marker='x', color="green")
+    axs.plot(qoi2.grid, qoi2.values, label="qoi2", color="red")
     plt.show()
