@@ -5,7 +5,7 @@ import os
 
 def sample(stan_code:str, data:dict, num_samples:int):
     posterior = stan.build(program_code=stan_code, data=data)
-    fit = posterior.sample(num_chains=4, num_samples=num_samples)
+    fit = posterior.sample(num_chains=4, num_samples=num_samples, num_warmup = 1000)
     df = fit.to_frame()
     print(df.describe().T)
     return df

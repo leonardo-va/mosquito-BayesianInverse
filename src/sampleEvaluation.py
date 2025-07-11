@@ -7,6 +7,7 @@ import os
 import odeSolver
 from jsonToModelCode import generate_py_model_function
 import visualization
+import quantityOfInterest
 
 def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, saveResultPath = None):
     inferedParameterNames = []
@@ -35,12 +36,11 @@ def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, sa
         fig.savefig(saveResultPath)
     plt.show()
 
-def sample_evaluation_from_csv(samples_csv_path:str, generate_data_parameters:dict=None):
-    samplesDF = read_csv(samples_csv_path)
-    save_evaluation_path = f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png"
-    sampleEvaluation(samplesDF, generate_data_parameters, save_evaluation_path)
-
-def compare_observables(samplesDF, setup:dict):
+def compare_data_and_prediction(samplesDF, setup:dict):
+    '''
+    Compare the observables the true parameters would generate, with the observables the posterior mean would
+    predict.
+    '''
     real_parameters = setup["parameters"]
     posterior_prameters = real_parameters.copy()
 
@@ -57,9 +57,11 @@ def compare_observables(samplesDF, setup:dict):
     _, solution_interpolant_posterior = solver.solve(lambda t,u: model_function(t,u,list(posterior_prameters.values())),
                                                   setup["time_interval"][1],
                                                   (setup["time_interval"][0],list(setup["initial_state"].values())))
-    visualization.plotMosquitoPopulation([solution_interpolant_real, solution_interpolant_posterior])
-    visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior, setup["state_to_observable"][0]["linear_combination"])
-
+    for observable in setup["state_to_observable"]:
+        visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior, 
+                                observable["linear_combination"],
+                                ["data", "mean prediction"],
+                                observable["name"])
 
 def main():
     parser = argparse.ArgumentParser()
@@ -69,20 +71,22 @@ def main():
     if not os.path.isfile(args.sample_path):
         print(f"Error: '{args.sample_path}' is not a valid file.")
         return
+    
     print(f"Evaluating samples: {args.sample_path}")
     sample_path_no_extension = os.path.splitext(args.sample_path)[0]
     setup_json_path = f"{sample_path_no_extension}_setup.json"
-    print(setup_json_path)
+    save_evaluation_path = f"{sample_path_no_extension}_evaluation.png"
+    samplesDF = read_csv(args.sample_path)
     if os.path.isfile(setup_json_path):
         with open(setup_json_path, 'r') as setup_file:
             setup = json.load(setup_file)
             generate_data_parameters = setup["parameters"]
-            sample_evaluation_from_csv(args.sample_path, generate_data_parameters)
-            samplesDF = read_csv(args.sample_path)
-            compare_observables(samplesDF, setup)
+            # sample_evaluation_from_csv(args.sample_path, generate_data_parameters)
+            sampleEvaluation(samplesDF, generate_data_parameters, saveResultPath=save_evaluation_path)
+            compare_data_and_prediction(samplesDF, setup)
         return
     else:
-        sample_evaluation_from_csv(args.sample_path)
+        sampleEvaluation(samplesDF, saveResultPath=save_evaluation_path)
         return
 
 

@@ -62,7 +62,7 @@ def main():
     sampleEvaluation.sampleEvaluation(samples_dataframe, 
                      generateDataParameters=setup["parameters"], 
                      saveResultPath=f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png")
-    sampleEvaluation.compare_observables(samples_dataframe, setup)
+    sampleEvaluation.compare_data_and_prediction(samples_dataframe, setup)
 
 if __name__ == "__main__":
     main()

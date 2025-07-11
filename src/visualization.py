@@ -53,10 +53,17 @@ def plotMosquitoPopulation(solutionInterpolants: list[PiecewiseLinearInterpolant
     plt.legend()
     plt.show()
 
-def compare_qoi(solution_interpolant1, solution_interpolant2, linear_qoi_coefficients):
-    qoi1 = quantityOfInterest.linearCombinationQOI(solution_interpolant1, linear_qoi_coefficients)
-    qoi2 = quantityOfInterest.linearCombinationQOI(solution_interpolant2, linear_qoi_coefficients)
+def compare_qoi(solution_interpolant1:PiecewiseLinearInterpolant, 
+                solution_interpolant2:PiecewiseLinearInterpolant, 
+                qoi_coefficients:list, 
+                solution_labels:list[str] = ["solution1", "solution2"], qoi_label:str = "qoi"):
+    '''
+    Plot a quantity of interest of two different solutions.
+    '''
+    qoi1 = quantityOfInterest.linearCombinationQOI(solution_interpolant1, qoi_coefficients)
+    qoi2 = quantityOfInterest.linearCombinationQOI(solution_interpolant2, qoi_coefficients)
     fig, axs = plt.subplots(1,1,figsize=(12,8))
-    axs.plot(qoi1.grid, qoi1.values, label="qoi1", marker='x', color="green")
-    axs.plot(qoi2.grid, qoi2.values, label="qoi2", color="red")
+    axs.plot(qoi1.grid, qoi1.values, label=f"{qoi_label} {solution_labels[0]}", marker='x', color="green")
+    axs.plot(qoi2.grid, qoi2.values, label=f"{qoi_label} {solution_labels[1]}", color="red")
+    axs.legend()
     plt.show()

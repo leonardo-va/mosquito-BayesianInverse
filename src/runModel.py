@@ -26,7 +26,6 @@ def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:
             continue
         combinedQoi = quantityOfInterest.combine(combinedQoi, qoi(interpolantMosquito))
     us = combinedQoi.evalVec(ts)
-
     ode_Data = {
         "N": numberObservations,
         "y": us.tolist(),
