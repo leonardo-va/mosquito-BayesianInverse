@@ -51,8 +51,8 @@ def generateDefaultSetup(setup_file_path):
     "number_of_measurements": 100,
     
     "inferred_parameters":{
-        "alpha": ["lognormal",-13.1,0.5],
-        "mu_M": ["normal",0.1,0.1]
+        "alpha": {"distribution":"normal", "parameters":[0,1]},
+        "mu_M": {"distribution":"normal", "parameters":[0,1]}
     },
 
     "state_to_observable":[
