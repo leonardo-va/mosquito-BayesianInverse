@@ -117,10 +117,17 @@ def generate_stan_model_block(setup:dict):
     model_block_noise = "\n\t"
     observables = setup["state_to_observable"]
     number_observables = len(observables)
-    observable_standard_deviation = setup["observable_standard_deviation"]
+    
+    observable_standard_deviations = setup["observable_standard_deviation"]
+    stddev_list = f"["
+    for idx,sigma in enumerate(observable_standard_deviations):
+        stddev_list += f"{sigma},"
+    stddev_list = stddev_list[:-1]
+    stddev_list +="]"
+    model_block_noise += f"vector[{number_observables}] sig = {stddev_list}';\n\t"
     model_block_noise += f"array[N] vector[{number_observables}] q;\n\t"
     model_block_noise += "for(t in 1:N){\n\t\tq[t] = qoi(mu[t]);\n\t}"
-    model_block_noise += f"\n\tfor(t in 1:N)" + "{\n\t\t" + f"y[t] ~ normal(q[t], {observable_standard_deviation});\n\t" + "}\n"
+    model_block_noise += f"\n\tfor(t in 1:N)" + "{\n\t\t" + f"y[t] ~ normal(q[t], sig);\n\t" + "}\n"
     
     model_block += model_block_initial_state
     model_block += model_block_fixed_parameters

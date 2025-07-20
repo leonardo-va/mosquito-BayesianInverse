@@ -46,13 +46,13 @@ def generateDefaultSetup(setup_file_path):
         "recovered_h":0
     },
 
-    "time_interval": [0,10],
+    "time_interval": [0,20],
     
-    "number_of_measurements": 100,
+    "number_of_measurements": 200,
     
     "inferred_parameters":{
-        "alpha": {"distribution":"normal", "parameters":[0,1]},
-        "mu_M": {"distribution":"normal", "parameters":[0,1]}
+        "alpha": {"distribution":"lognormal", "parameters":[-13.1,0.5], "bounds": [0,1]},
+        "mu_M": {"distribution":"normal", "parameters":[0.1,0.1], "bounds":[0,1]}
     },
 
     "state_to_observable":[
@@ -66,10 +66,10 @@ def generateDefaultSetup(setup_file_path):
         }
     ],
 
-    "observable_standard_deviation": 5000,
+    "observable_standard_deviation": [15000,15000],
 
-    "number_of_samples": 1000
-    }
+    "number_of_samples": 200
+}
     with open(setup_file_path, "w") as default_file:
         json.dump(default_setup, default_file, indent=4)
     return default_setup

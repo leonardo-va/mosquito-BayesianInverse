@@ -17,7 +17,7 @@ def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:
                                           initial, 
                                           0.01, 
                                           solverMethod)
-    visualization.plotMosquitoPopulation([interpolantMosquito])
+    
     ts = np.linspace(timeInterval[0], timeInterval[1], numberObservations)
     us = interpolantMosquito.evalVec(ts)
     combinedQoi = quantitiesOfInterest[0](interpolantMosquito)
@@ -48,7 +48,7 @@ def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4',
     nFigCols = 3
     figMosquitoPop, axesMosquitoPop = plt.subplots(nFigRows, nFigCols, figsize=(15, 10))
     for idx, params in enumerate(parametersList):
-        print(f"alpha = {params['alpha']}")
+        # print(f"alpha = {params['alpha']}")
         
         _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                     list(params.values())), 
