@@ -8,6 +8,13 @@ import odeSolver
 from jsonToModelCode import generate_py_model_function
 import visualization
 import quantityOfInterest
+from scipy.stats import gaussian_kde
+
+def map_estimate_continuous(values):
+    kde = gaussian_kde(values)
+    xs = np.linspace(min(values), max(values), 1000)
+    ys = kde(xs)
+    return xs[np.argmax(ys)]
 
 def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, saveResultPath = None):
     inferedParameterNames = []
@@ -25,11 +32,14 @@ def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, sa
         currentAx = axs[fig_row, fig_col]
         samples = samplesDF[parameterName]
         samplesMean = np.mean(samples)
+        samplesMAP = map_estimate_continuous(samples)
         print(f"samples mean {parameterName}: {samplesMean}")
+        print(f"samples MAP {parameterName}: {samplesMAP}")
         currentAx.hist(samples,nBins,alpha=0.6)
         if(generateDataParameters is not None):
             currentAx.axvline(generateDataParameters[parameterName], color='lightgreen', label=f"true value: {generateDataParameters[parameterName]:.4g}")
             currentAx.axvline(samplesMean, color='red', label=f"samples mean: {samplesMean:.4g}")
+            currentAx.axvline(samplesMAP, color = 'blue', label=f"MAP point: {samplesMAP:.4g}")
         currentAx.set_title(parameterName)
         currentAx.legend()
     if(saveResultPath is not None):
@@ -42,25 +52,35 @@ def compare_data_and_prediction(samplesDF, setup:dict):
     predict.
     '''
     real_parameters = setup["parameters"]
-    posterior_prameters = real_parameters.copy()
+    posterior_mean = real_parameters.copy()
+    posterior_map = real_parameters.copy()
 
     for idx, parameterName in enumerate(setup["inferred_parameters"]):
         samples = samplesDF[parameterName]
         samplesMean = np.mean(samples)
-        posterior_prameters[parameterName] = samplesMean
+        samplesMAP = map_estimate_continuous(samples)
+        posterior_mean[parameterName] = samplesMean
+        posterior_map[parameterName] = samplesMAP
 
     solver = odeSolver.ODESolver()    
     model_function = generate_py_model_function(setup)
     _, solution_interpolant_real = solver.solve(lambda t,u: model_function(t,u,list(real_parameters.values())), 
                                             setup["time_interval"][1], 
                                             (setup["time_interval"][0],list(setup["initial_state"].values())))
-    _, solution_interpolant_posterior = solver.solve(lambda t,u: model_function(t,u,list(posterior_prameters.values())),
+    _, solution_interpolant_posterior_mean = solver.solve(lambda t,u: model_function(t,u,list(posterior_mean.values())),
+                                                  setup["time_interval"][1],
+                                                  (setup["time_interval"][0],list(setup["initial_state"].values())))
+    _, solution_interpolant_posterior_map = solver.solve(lambda t,u: model_function(t,u,list(posterior_map.values())),
                                                   setup["time_interval"][1],
                                                   (setup["time_interval"][0],list(setup["initial_state"].values())))
     for observable in setup["state_to_observable"]:
-        visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior, 
+        visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior_mean, 
                                 observable["linear_combination"],
                                 ["data", "mean prediction"],
+                                observable["name"])
+        visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior_map, 
+                                observable["linear_combination"],
+                                ["data", "MAP prediction"],
                                 observable["name"])
 
 def main():

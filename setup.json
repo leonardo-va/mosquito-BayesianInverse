@@ -1,68 +1,65 @@
 {
-    "parameters":{
-        "delta_E" : 0.6,
-        "mu_E" : 0.875,
-        "beta" : 3, 
-        "alpha" : 0.000002, 
-        "delta_J" : 0.09,
-        "mu_J" : 0.1, 
-        "omega" : 0.5,
-        "mu_M" : 0.1, 
-        "a" : 0.2,
-        "b_M" : 0.9,
-        "alpha_M" : 0.0333,
-        "Lambda" : 12, 
-        "b_H" : 0.8,
-        "mu_H" : 0.001,
-        "alpha_H" : 0.4,
-        "gamma_H" : 0.1818
+    "parameters": {
+        "beta": 0.5,
+        "delta_E": 0.1,
+        "mu_E": 0.3,
+        "delta_J": 0.1,
+        "mu_J": 0.1,
+        "a": 0.1,
+        "mu_M": 0.05,
+        "alpha_M": 0.2
     },
-
-    "ode_rhs":[
-        "beta*(u[3]+u[4]+u[5]) - (delta_E+mu_E)*u[1]",
-        "delta_E*u[1] - alpha*(u[2]^2) - mu_J*u[2] - delta_J*u[2]",
-        "omega*delta_J*u[2] - a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - mu_M*u[3]",
-        "a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - (alpha_M+mu_M)*u[4]",
-        "alpha_M*u[4] - mu_M*u[5]",
-        "Lambda - a*b_H*u[5]*u[6]/(u[6]+u[7]+u[8]+u[9]) - mu_H*u[6]",
-        "a*b_H*u[5]*u[6]/(u[6]+u[7]+u[8]+u[9]) - alpha_H*u[7] - mu_H*u[7]",
-        "alpha_H*u[7]-gamma_H*u[8]-mu_H*u[8]",
-        "gamma_H*u[8] - mu_H*u[9]"
+    "ode_rhs": [
+        "beta*(u[3]+u[4]+u[5])-delta_E*u[1]-mu_E*u[1]",
+        "delta_E*u[1]-delta_J*u[2]-mu_J*u[2]",
+        "delta_J*u[2] - a*u[3]*u[5]/(u[3]+u[4]+u[5]) - mu_M*u[3]",
+        "a*u[3]*u[5]/(u[3]+u[4]+u[5]) - alpha_M*u[4] - mu_M*u[4]",
+        "alpha_M*u[4]-mu_M*u[5]"
     ],
-
-    "initial_state":{
-        "eggs":10000,
-        "juveniles":10000,
-        "susceptible_m":50000,
-        "exposed_m":10000,
-        "infected_m":10000,
-        "susceptible_h":10000,
-        "exposed_h":1000,
-        "infected_h":1000,
-        "recovered_h":0
+    "initial_state": {
+        "eggs": 10000,
+        "juveniles": 10000,
+        "susceptible_h": 10000,
+        "exposed_h": 100,
+        "infected_h": 100
     },
-
-    "time_interval": [0,20],
-    
+    "time_interval": [
+        0,
+        40
+    ],
     "number_of_measurements": 200,
-    
-    "inferred_parameters":{
-        "alpha": {"distribution":"lognormal", "parameters":[-13.1,0.5], "bounds": [0,1]},
-        "mu_M": {"distribution":"normal", "parameters":[0.1,0.1], "bounds":[0,1]}
-    },
-
-    "state_to_observable":[
-        {
-            "linear_combination":[0,0,1,1,1,0,0,0,0],
-            "name":"number of mosquitoes"
+    "inferred_parameters": {
+        "a": {
+            "distribution": "normal",
+            "parameters": [
+                0.1,
+                0.3
+            ],
+            "bounds": [0,0.9]
         },
+        "mu_M": {
+            "distribution": "normal",
+            "parameters": [
+                0.04,
+                0.1
+            ],
+            "bounds":[0,0.9]
+        }
+    },
+    "state_to_observable": [
         {
-            "linear_combination":[0,1,0,0,0,0,0,0,0],
-            "name":"number of juveniles"
+            "linear_combination": [
+                0,
+                0,
+                0,
+                0,
+                1
+            ],
+            "name": "infected"
         }
     ],
-
-    "observable_standard_deviation": [15000,15000],
-
-    "number_of_samples": 200
+    "observable_standard_deviation": [
+        50
+    ],
+    "number_of_samples": 400
 }

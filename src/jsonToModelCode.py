@@ -27,7 +27,7 @@ def _generate_stan_state_to_observable(setup:dict):
         eq = f"res[{idx_equation+1}] = "
         for idx_coeff, coeff in enumerate(linearCombination):
             if(coeff != 0):
-                eq += f"+{coeff}*u[{idx_coeff}]"
+                eq += f"+{coeff}*u[{idx_coeff+1}]"
         first_plus = eq.find("+")
         if first_plus != -1:
             eq = eq[:first_plus] + eq[first_plus+1:]

@@ -26,9 +26,20 @@ def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:
             continue
         combinedQoi = quantityOfInterest.combine(combinedQoi, qoi(interpolantMosquito))
     us = combinedQoi.evalVec(ts)
+    random_noise = np.random.normal(0,50, us.shape)
+
+    noisy_data = us + random_noise
+    noisy_data[noisy_data<0] = 0
+    plt.plot(noisy_data, color='r')
+    plt.plot(us, color='g')
+    plt.show()
+  
+
+    print(us.shape)
+    print(noisy_data.shape)
     ode_Data = {
         "N": numberObservations,
-        "y": us.tolist(),
+        "y": noisy_data.tolist(),
         "t0": ts[0]-0.0001,
         "ts": ts
         }
@@ -115,6 +126,24 @@ def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4',
     if(save_png_dir is not None):
         figSIR.savefig(os.path.join(save_png_dir, 'SIR.png'))
     plt.waitforbuttonpress()
+
+def run_custom(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4', save_png_dir = None):
+    _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
+                                                list(parameters.values())), 
+                                                T=40,
+                                                initialCondition=(0,np.array(list(initialState.values())).reshape(len(initialState),-1)),
+                                                stepSize = 0.01,
+                                                method=solverMethod)
+    eggs = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [1,0,0,0,0])
+    juveniles = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,1,0,0,0])
+    susceptible = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,0,1,0,0])
+    exposed = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,0,0,1,0])
+    infected = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,0,0,0,1])
+    visualization.plotQoi(eggs, "eggs")
+    visualization.plotQoi(juveniles, "juveniles")
+    visualization.plotQoi(susceptible, "susceptible")
+    visualization.plotQoi(exposed, "exposed")
+    visualization.plotQoi(infected, "infected")
 
 if __name__ == "__main__":
     run()

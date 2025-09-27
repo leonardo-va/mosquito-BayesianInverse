@@ -2,6 +2,10 @@ from odeSolver import PiecewiseLinearInterpolant
 from matplotlib import pyplot as plt
 import quantityOfInterest
 
+def plotQoi(qoi, label = ""):
+    plt.plot(qoi.grid, qoi.values)
+    plt.ylabel(label)
+    plt.show()
 def plotHosts(solutionInterpolant:PiecewiseLinearInterpolant):
     _, axs = plt.subplots(2,2,sharey=True)
     axs[0,0].plot(solutionInterpolant.grid, solutionInterpolant.values[:,5])

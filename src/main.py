@@ -39,7 +39,8 @@ def main():
 
     # generateDefaultSetup(os.path.join(_get_root_dir(), "defaultsetup.json"))
     # solve the model equation and generate some plots (this is just for visualizing, and is not necessary for sampling)
-    runModel.run(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
+    # runModel.run(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
+    # runModel.run_custom(mosquito_model, parameters, initial_state, 'RK4', None)
 
     # generate data for the sampler
     observables = []

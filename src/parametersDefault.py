@@ -1,6 +1,5 @@
-import numpy as np
 import json
-
+import os
 def generateDefaultSetup(setup_file_path):
     default_setup = {
     "parameters":{
@@ -68,7 +67,7 @@ def generateDefaultSetup(setup_file_path):
 
     "observable_standard_deviation": [15000,15000],
 
-    "number_of_samples": 200
+    "number_of_samples": 2000
 }
     with open(setup_file_path, "w") as default_file:
         json.dump(default_setup, default_file, indent=4)
@@ -108,3 +107,9 @@ defaultInitialConditions ={
 }
 
 
+if __name__ == "__main__":
+    
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    
+    generateDefaultSetup(os.path.join(parent_dir, "setup.json"))
