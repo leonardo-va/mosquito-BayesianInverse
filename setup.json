@@ -1,49 +1,66 @@
 {
     "parameters": {
-        "beta": 0.5,
-        "delta_E": 0.1,
-        "mu_E": 0.3,
-        "delta_J": 0.1,
-        "mu_J": 0.1,
-        "a": 0.1,
-        "mu_M": 0.05,
-        "alpha_M": 0.2
+        "beta": 3,
+        "a": 0.2,
+        "b_M":0.9,
+        "mu_M": 0.1,
+        "alpha_M": 0.0333,
+        "rec":0.1,
+        "delta_E":0.6,
+        "delta_J":0.09,
+        "mu_E":0.875,
+        "mu_J":0.1,
+        "omega":0.5,
+        "Lambda": 12,
+        "b_H": 0.8,
+        "mu_H": 0.001,
+        "alpha_H":0.4,
+        "gamma_H": 0.1818,
+        "alpha":0.000002
     },
     "ode_rhs": [
-        "beta*(u[3]+u[4]+u[5])-delta_E*u[1]-mu_E*u[1]",
-        "delta_E*u[1]-delta_J*u[2]-mu_J*u[2]",
-        "delta_J*u[2] - a*u[3]*u[5]/(u[3]+u[4]+u[5]) - mu_M*u[3]",
-        "a*u[3]*u[5]/(u[3]+u[4]+u[5]) - alpha_M*u[4] - mu_M*u[4]",
-        "alpha_M*u[4]-mu_M*u[5]"
+        "beta*(u[3]+u[4]+u[5]) - delta_E * u[1] - mu_E * u[1]",
+        "delta_E * u[1] - delta_J * u[2] -alpha*u[2]^2- mu_J * u[2]",
+        "omega*delta_J * u[2] - a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - mu_M*u[3]",
+        "a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - alpha_M*u[4] - mu_M*u[4]",
+        "alpha_M*u[4] - mu_M*u[5]",
+        "Lambda - a*b_H*u[6]*u[5]/(u[3]+u[4]+u[5]) - mu_H*u[6]",
+        "a*b_H*u[6]*u[5]/(u[3]+u[4]+u[5]) - alpha_H*u[7] - mu_H*u[7]",
+        "alpha_H*u[7] - gamma_H*u[8] - mu_H*u[8]",
+        "gamma_H*u[8] - mu_H * u[9]"
     ],
     "initial_state": {
         "eggs": 10000,
         "juveniles": 10000,
-        "susceptible_h": 10000,
-        "exposed_h": 100,
-        "infected_h": 100
+        "susceptible_M": 50000,
+        "exposed_M":10000,
+        "infected_M":10000,
+        "susceptible_H":10000,
+        "exposed_H":1000,
+        "infected_H":1000,
+        "recovered_H":0
     },
     "time_interval": [
         0,
-        40
+        100
     ],
-    "number_of_measurements": 200,
+    "number_of_measurements": 300,
     "inferred_parameters": {
-        "a": {
+        "alpha": {
             "distribution": "normal",
             "parameters": [
                 0.1,
-                0.3
+                0.1
             ],
             "bounds": [0,0.9]
         },
         "mu_M": {
             "distribution": "normal",
             "parameters": [
-                0.04,
+                0.1,
                 0.1
             ],
-            "bounds":[0,0.9]
+            "bounds": [0,0.9]
         }
     },
     "state_to_observable": [
@@ -51,15 +68,33 @@
             "linear_combination": [
                 0,
                 0,
+                1,
+                1,
+                1,
                 0,
                 0,
-                1
+                0,
+                0
             ],
-            "name": "infected"
+            "name": "total adult mosquitoes"
+        },
+        {
+            "linear_combination": [
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            "name": "number of juveniles"
         }
     ],
     "observable_standard_deviation": [
-        50
+        10000,20000
     ],
     "number_of_samples": 400
 }
