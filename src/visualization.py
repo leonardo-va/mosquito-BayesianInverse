@@ -1,6 +1,7 @@
 from odeSolver import PiecewiseLinearInterpolant
 from matplotlib import pyplot as plt
 import quantityOfInterest
+import numpy as np
 
 def plotQoi(qoi, label = ""):
     plt.plot(qoi.grid, qoi.values)
@@ -57,17 +58,47 @@ def plotMosquitoPopulation(solutionInterpolants: list[PiecewiseLinearInterpolant
     plt.legend()
     plt.show()
 
-def compare_qoi(solution_interpolant1:PiecewiseLinearInterpolant, 
-                solution_interpolant2:PiecewiseLinearInterpolant, 
-                qoi_coefficients:list, 
-                solution_labels:list[str] = ["solution1", "solution2"], qoi_label:str = "qoi"):
-    '''
-    Plot a quantity of interest of two different solutions.
-    '''
-    qoi1 = quantityOfInterest.linearCombinationQOI(solution_interpolant1, qoi_coefficients)
-    qoi2 = quantityOfInterest.linearCombinationQOI(solution_interpolant2, qoi_coefficients)
+def compare_gt_and_prediction(solution_interpolant_gt:PiecewiseLinearInterpolant,
+                              solution_interpolant_pred:PiecewiseLinearInterpolant,
+                              observable:dict,
+                              stddev = 0,
+                              prediction_label = 'mean',
+                              xlabel = 'days',
+                              ylabel = 'quantity'):
+    qoi_coefficients = observable['linear_combination']
+    qoi_label = observable['name']
+    qoi_gt = quantityOfInterest.linearCombinationQOI(solution_interpolant_gt, qoi_coefficients)
+    qoi_pred = quantityOfInterest.linearCombinationQOI(solution_interpolant_pred, qoi_coefficients)
     fig, axs = plt.subplots(1,1,figsize=(12,8))
-    axs.plot(qoi1.grid, qoi1.values, label=f"{qoi_label} {solution_labels[0]}", marker='x', color="green")
-    axs.plot(qoi2.grid, qoi2.values, label=f"{qoi_label} {solution_labels[1]}", color="red")
+    
+    axs.plot(qoi_gt.grid, qoi_gt.values, label=f"{qoi_label} groundtruth", color="green")
+    if(stddev > 0):
+        axs.fill_between(qoi_gt.grid.flatten(), qoi_gt.values - stddev, qoi_gt.values + stddev, 
+                         color='lightblue', alpha=0.5, label='±1 Std Dev')
+    axs.plot(qoi_pred.grid, qoi_pred.values, label=f"{qoi_label} {prediction_label}", color="red")
+    axs.set_xlabel(xlabel)
+    axs.set_ylabel(ylabel)
     axs.legend()
     plt.show()
+    
+
+def visualize_artificial_data(data, qoi_names):
+      
+    noisy_us = np.array(data.noisyData['y'])
+    true_us = np.array(data.truth['y'])
+    for quantity_idx in np.arange(noisy_us.shape[1]):
+        plt.fill_between(data.truth['ts'], 
+                            true_us[:,quantity_idx] - data.standardDeviations[quantity_idx], 
+                            true_us[:,quantity_idx] + data.standardDeviations[quantity_idx], 
+                            color='lightblue', alpha=0.5, label='±1 Std Dev')
+        plt.plot(data.noisyData['ts'],noisy_us[:,quantity_idx], 'o',color='r',label='measurements')
+        plt.plot(data.truth['ts'],true_us[:,quantity_idx], color='g',label='truth')
+        plt.title(f"{qoi_names[quantity_idx]}")
+        plt.xlabel("days")
+        plt.ylabel("quantity")
+        plt.legend()
+        plt.show()
+
+def visualize_prior_to_posterior():
+    pass
+   

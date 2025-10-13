@@ -6,6 +6,7 @@ import runModel
 import runSampler
 import quantityOfInterest
 import sampleEvaluation
+import visualization
 
 
 def _get_root_dir():
@@ -43,20 +44,23 @@ def main():
     noise = setup['observable_standard_deviation']
 
     # generateDefaultSetup(os.path.join(_get_root_dir(), "defaultsetup.json"))
-    # solve the model equation and generate some plots (this is just for visualizing, and is not necessary for sampling)
-    runModel.run(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
-    # runModel.run_custom(mosquito_model, parameters, initial_state, 'RK4', None)
+    
+    try:
+        runModel.generate_report_plots(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
+    except:
+        print("generating plots failed, continuing with data generation and sampling")
 
     # generate data for the sampler
     observables = []
     for observable in setup["state_to_observable"]:
         linearCoefficients = observable["linear_combination"]
         observables.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
-
     data = runModel.generate_data_from_setup(mosquito_model,setup)
+    qoi_names = [observable['name'] for observable in setup['state_to_observable']]
+    visualization.visualize_artificial_data(data, qoi_names)
     
     # build and run the sampler 
-    samples_dataframe = runSampler.sample(stan_code = stan_code, data = data, num_samples = setup["number_of_samples"])
+    samples_dataframe = runSampler.sample(stan_code = stan_code, data = data.noisyData, num_samples = setup["number_of_samples"])
 
     samples_csv_path = runSampler.save_samples(samples_dataframe, os.path.join(_get_root_dir(), "samples"), setup)
 

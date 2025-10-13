@@ -5,55 +5,9 @@ import os
 import visualization
 from matplotlib import pyplot as plt
 import quantityOfInterest
-from jsonToModelCode import generate_py_model_function
+from collections import namedtuple
 
-
-def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:int, 
-                 timeInterval: list, noise:list,
-                 parameters: dict, initialState: dict, 
-                 solverMethod = 'RK4')->dict:
-    
-    initial = (timeInterval[0], list(initialState.values()))
-    solver = ODESolver()
-    _, interpolantMosquito = solver.solve(lambda t,u: mosquitoModel(t,u,list(parameters.values())), 
-                                          timeInterval[1], 
-                                          initial, 
-                                          0.01, 
-                                          solverMethod)
-    
-    ts = np.linspace(timeInterval[0], timeInterval[1], numberObservations)
-    us = interpolantMosquito.evalVec(ts)
-    combinedQoi = quantitiesOfInterest[0](interpolantMosquito)
-    for idx, qoi in enumerate(quantitiesOfInterest):
-        if idx == 0:
-            continue
-        combinedQoi = quantityOfInterest.combine(combinedQoi, qoi(interpolantMosquito))
-    us = combinedQoi.evalVec(ts)
-    # random_noise = np.random.normal(0,50, us.shape)
-
-    noisy_data = us.copy()
-    print(noisy_data.shape)
-    for quantity_idx in np.arange(noisy_data.shape[1]):
-        print(quantity_idx)
-        noisy_data[:,quantity_idx] += np.random.normal(0,noise[quantity_idx], noisy_data.shape[0])
-    noisy_data[noisy_data<0] = 0
-    for quantity_idx in np.arange(noisy_data.shape[1]):
-        plt.plot(noisy_data[:,quantity_idx], color='r')
-        plt.plot(us, color='g')
-        plt.title(f"quantity {quantity_idx}")
-        plt.show()
-  
-
-    print(us.shape)
-    print(noisy_data.shape)
-    ode_Data = {
-        "N": numberObservations,
-        "y": noisy_data.tolist(),
-        "t0": ts[0]-0.0001,
-        "ts": ts
-        }
-    return ode_Data
-
+ArtificialData = namedtuple("artificialData", ['noisyData', 'truth', 'standardDeviations'])
 
 def generate_data_from_setup(model_equations, setup:dict):
     numberObservations = setup["number_of_measurements"]
@@ -67,7 +21,6 @@ def generate_data_from_setup(model_equations, setup:dict):
     qoi_names = []
     for observable in setup["state_to_observable"]:
         linearCoefficients = observable["linear_combination"].copy()
-        print(linearCoefficients)
         qoi_names.append(observable["name"])
         quantitiesOfInterest.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
 
@@ -78,14 +31,8 @@ def generate_data_from_setup(model_equations, setup:dict):
                                           initial, 
                                           0.01, 
                                           solverMethod)
-    
 
-    
     ts = np.linspace(timeInterval[0], timeInterval[1], numberObservations)
-    # us = interpolantMosquito.evalVec(ts)
-    
-    # print(us.shape, "???")
-    # combinedQoi = quantitiesOfInterest[0](interpolantMosquito)
     combinedQoi = quantityOfInterest.linearCombinationQOI(interpolantMosquito, observables[0]["linear_combination"])
     for idx, qoi in enumerate(observables):
         if idx == 0:
@@ -96,22 +43,22 @@ def generate_data_from_setup(model_equations, setup:dict):
     for quantity_idx in np.arange(noisy_data.shape[1]):
         noisy_data[:,quantity_idx] += np.random.normal(0,noise[quantity_idx], noisy_data.shape[0])
     noisy_data[noisy_data<0] = 0
-    
-    for quantity_idx in np.arange(noisy_data.shape[1]):
-        plt.plot(noisy_data[:,quantity_idx], color='r')
-        plt.plot(us, color='g')
-        plt.title(f"{qoi_names[quantity_idx]}, quantity_idx {quantity_idx}")
-        plt.show()
-  
+       
     ode_Data = {
-        "N": numberObservations,
-        "y": noisy_data.tolist(),
-        "t0": ts[0]-0.0001,
-        "ts": ts
+        "N": numberObservations-1,
+        "y": noisy_data[1:,:].tolist(),
+        "t0": ts[0],
+        "ts": ts[1:]
         }
-    return ode_Data
+    groundtruth = {
+        "N": numberObservations,
+        "y": us.tolist(),
+        "t0": ts[0],
+        "ts": ts
+    }
+    return ArtificialData(ode_Data, groundtruth, noise)
 
-def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4', save_png_dir = None):
+def generate_report_plots(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4', save_png_dir = None):
     
     alphas = [10**(-6), 2*10**(-6),2.5*10**(-6),3*10**(-6),4*10**(-6),6*10**(-6)]
     parametersList = []
@@ -124,7 +71,6 @@ def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4',
     nFigCols = 3
     figMosquitoPop, axesMosquitoPop = plt.subplots(nFigRows, nFigCols, figsize=(15, 10))
     for idx, params in enumerate(parametersList):
-        # print(f"alpha = {params['alpha']}")
         
         _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                     list(params.values())), 
@@ -191,28 +137,3 @@ def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4',
     if(save_png_dir is not None):
         figSIR.savefig(os.path.join(save_png_dir, 'SIR.png'))
     plt.waitforbuttonpress()
-
-def run_custom(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4', save_png_dir = None):
-    _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
-                                                list(parameters.values())), 
-                                                T=40,
-                                                initialCondition=(0,np.array(list(initialState.values())).reshape(len(initialState),-1)),
-                                                stepSize = 0.01,
-                                                method=solverMethod)
-    eggs = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [1,0,0,0,0])
-    juveniles = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,1,0,0,0])
-    susceptible = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,0,1,0,0])
-    exposed = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,0,0,1,0])
-    infected = quantityOfInterest.linearCombinationQOI(solutionInterpolant, [0,0,0,0,1])
-    visualization.plotQoi(eggs, "eggs")
-    visualization.plotQoi(juveniles, "juveniles")
-    visualization.plotQoi(susceptible, "susceptible")
-    visualization.plotQoi(exposed, "exposed")
-    visualization.plotQoi(infected, "infected")
-
-if __name__ == "__main__":
-    run()
-
-
-
-

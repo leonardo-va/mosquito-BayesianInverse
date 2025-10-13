@@ -17,7 +17,10 @@ class PiecewiseLinearInterpolant():
         resList = []
         for x in xs:
             resList.append(self.eval(x))
-        return np.array(resList)
+        res = np.array(resList)
+        if(res.ndim == 1):
+            res = res[:,np.newaxis]
+        return res
      
     def codomainDim(self):
         return self.values.shape[1]

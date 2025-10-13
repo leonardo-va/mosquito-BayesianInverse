@@ -73,15 +73,15 @@ def compare_data_and_prediction(samplesDF, setup:dict):
     _, solution_interpolant_posterior_map = solver.solve(lambda t,u: model_function(t,u,list(posterior_map.values())),
                                                   setup["time_interval"][1],
                                                   (setup["time_interval"][0],list(setup["initial_state"].values())))
-    for observable in setup["state_to_observable"]:
-        visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior_mean, 
-                                observable["linear_combination"],
-                                ["data", "mean prediction"],
-                                observable["name"])
-        visualization.compare_qoi(solution_interpolant_real, solution_interpolant_posterior_map, 
-                                observable["linear_combination"],
-                                ["data", "MAP prediction"],
-                                observable["name"])
+    for idx, observable in enumerate(setup["state_to_observable"]):
+        visualization.compare_gt_and_prediction(solution_interpolant_real, solution_interpolant_posterior_mean, 
+                                observable,
+                                stddev = setup['observable_standard_deviation'][idx],
+                                prediction_label = 'mean')
+        visualization.compare_gt_and_prediction(solution_interpolant_real, solution_interpolant_posterior_map, 
+                                observable,
+                                stddev = setup['observable_standard_deviation'][idx],
+                                prediction_label = 'MAP')
 
 def main():
     parser = argparse.ArgumentParser()
