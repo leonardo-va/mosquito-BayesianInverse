@@ -1,7 +1,7 @@
 import json
 import argparse
 import os
-from jsonToModelCode import generate_py_model_function, generate_stan_ode_code
+from jsonToModelCode import generate_py_model_function, generate_stan_ode_code, validate_setup
 import runModel
 import runSampler
 import quantityOfInterest
@@ -29,6 +29,10 @@ def main():
     with open(args.setup, 'r') as setup_file:
         setup = json.load(setup_file)
 
+    if validate_setup(setup) == False:
+        print("setup is not valid")
+        return None
+    
     # generate the model function, parameters, and stan code from the setup
     generated_stan_code_file = os.path.join(_get_root_dir(), "stan_code.txt")
     generated_py_function_file = os.path.join(_get_root_dir(), "py_model_function.txt")
@@ -36,10 +40,11 @@ def main():
     stan_code = generate_stan_ode_code(setup, generated_stan_code_file)
     parameters = setup['parameters']
     initial_state = setup['initial_state']
+    noise = setup['observable_standard_deviation']
 
     # generateDefaultSetup(os.path.join(_get_root_dir(), "defaultsetup.json"))
     # solve the model equation and generate some plots (this is just for visualizing, and is not necessary for sampling)
-    # runModel.run(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
+    runModel.run(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
     # runModel.run_custom(mosquito_model, parameters, initial_state, 'RK4', None)
 
     # generate data for the sampler
@@ -47,12 +52,8 @@ def main():
     for observable in setup["state_to_observable"]:
         linearCoefficients = observable["linear_combination"]
         observables.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
-    data = runModel.generateData(mosquito_model, 
-                                 quantitiesOfInterest = observables,
-                                 numberObservations = setup["number_of_measurements"],
-                                 timeInterval = setup["time_interval"],
-                                 parameters = parameters,
-                                 initialState = initial_state)
+
+    data = runModel.generate_data_from_setup(mosquito_model,setup)
     
     # build and run the sampler 
     samples_dataframe = runSampler.sample(stan_code = stan_code, data = data, num_samples = setup["number_of_samples"])

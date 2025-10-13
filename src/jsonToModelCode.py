@@ -1,6 +1,9 @@
 import numpy as np
 import re
 
+def validate_setup(setup:dict):
+    pass
+
 def _generate_stan_model_function(setup:dict):
     declaration = """vector sho(real t, vector u"""
     for paramName in setup["parameters"].keys():

@@ -8,7 +8,10 @@ import quantityOfInterest
 from jsonToModelCode import generate_py_model_function
 
 
-def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:int, timeInterval: list, parameters: dict, initialState: dict, solverMethod = 'RK4')->dict:
+def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:int, 
+                 timeInterval: list, noise:list,
+                 parameters: dict, initialState: dict, 
+                 solverMethod = 'RK4')->dict:
     
     initial = (timeInterval[0], list(initialState.values()))
     solver = ODESolver()
@@ -26,13 +29,19 @@ def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:
             continue
         combinedQoi = quantityOfInterest.combine(combinedQoi, qoi(interpolantMosquito))
     us = combinedQoi.evalVec(ts)
-    random_noise = np.random.normal(0,50, us.shape)
+    # random_noise = np.random.normal(0,50, us.shape)
 
-    noisy_data = us + random_noise
+    noisy_data = us.copy()
+    print(noisy_data.shape)
+    for quantity_idx in np.arange(noisy_data.shape[1]):
+        print(quantity_idx)
+        noisy_data[:,quantity_idx] += np.random.normal(0,noise[quantity_idx], noisy_data.shape[0])
     noisy_data[noisy_data<0] = 0
-    plt.plot(noisy_data, color='r')
-    plt.plot(us, color='g')
-    plt.show()
+    for quantity_idx in np.arange(noisy_data.shape[1]):
+        plt.plot(noisy_data[:,quantity_idx], color='r')
+        plt.plot(us, color='g')
+        plt.title(f"quantity {quantity_idx}")
+        plt.show()
   
 
     print(us.shape)
@@ -45,6 +54,62 @@ def generateData(mosquitoModel, quantitiesOfInterest : list, numberObservations:
         }
     return ode_Data
 
+
+def generate_data_from_setup(model_equations, setup:dict):
+    numberObservations = setup["number_of_measurements"]
+    timeInterval = setup["time_interval"]
+    noise = setup["observable_standard_deviation"]
+    parameters = setup["parameters"]
+    initialState = setup["initial_state"]
+    solverMethod = "RK4"
+    observables = setup["state_to_observable"]
+    quantitiesOfInterest = []
+    qoi_names = []
+    for observable in setup["state_to_observable"]:
+        linearCoefficients = observable["linear_combination"].copy()
+        print(linearCoefficients)
+        qoi_names.append(observable["name"])
+        quantitiesOfInterest.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
+
+    initial = (timeInterval[0], list(initialState.values()))
+    solver = ODESolver()
+    _, interpolantMosquito = solver.solve(lambda t,u: model_equations(t,u,list(parameters.values())), 
+                                          timeInterval[1], 
+                                          initial, 
+                                          0.01, 
+                                          solverMethod)
+    
+
+    
+    ts = np.linspace(timeInterval[0], timeInterval[1], numberObservations)
+    # us = interpolantMosquito.evalVec(ts)
+    
+    # print(us.shape, "???")
+    # combinedQoi = quantitiesOfInterest[0](interpolantMosquito)
+    combinedQoi = quantityOfInterest.linearCombinationQOI(interpolantMosquito, observables[0]["linear_combination"])
+    for idx, qoi in enumerate(observables):
+        if idx == 0:
+            continue
+        combinedQoi = quantityOfInterest.combine(combinedQoi, quantityOfInterest.linearCombinationQOI(interpolantMosquito,qoi["linear_combination"]))
+    us = combinedQoi.evalVec(ts)
+    noisy_data = us.copy()
+    for quantity_idx in np.arange(noisy_data.shape[1]):
+        noisy_data[:,quantity_idx] += np.random.normal(0,noise[quantity_idx], noisy_data.shape[0])
+    noisy_data[noisy_data<0] = 0
+    
+    for quantity_idx in np.arange(noisy_data.shape[1]):
+        plt.plot(noisy_data[:,quantity_idx], color='r')
+        plt.plot(us, color='g')
+        plt.title(f"{qoi_names[quantity_idx]}, quantity_idx {quantity_idx}")
+        plt.show()
+  
+    ode_Data = {
+        "N": numberObservations,
+        "y": noisy_data.tolist(),
+        "t0": ts[0]-0.0001,
+        "ts": ts
+        }
+    return ode_Data
 
 def run(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4', save_png_dir = None):
     
