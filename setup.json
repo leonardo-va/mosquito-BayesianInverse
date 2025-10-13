@@ -1,22 +1,21 @@
 {
     "parameters": {
+        "delta_E": 0.6,
+        "mu_E": 0.875,
         "beta": 3,
-        "a": 0.2,
-        "b_M":0.9,
+        "alpha": 2e-06,
+        "delta_J": 0.09,
+        "mu_J": 0.1,
+        "omega": 0.5,
         "mu_M": 0.1,
+        "a": 0.2,
+        "b_M": 0.9,
         "alpha_M": 0.0333,
-        "rec":0.1,
-        "delta_E":0.6,
-        "delta_J":0.09,
-        "mu_E":0.875,
-        "mu_J":0.1,
-        "omega":0.5,
         "Lambda": 12,
         "b_H": 0.8,
         "mu_H": 0.001,
-        "alpha_H":0.4,
-        "gamma_H": 0.1818,
-        "alpha":0.000002
+        "alpha_H": 0.4,
+        "gamma_H": 0.1818
     },
     "ode_rhs": [
         "beta*(u[3]+u[4]+u[5]) - delta_E * u[1] - mu_E * u[1]",
@@ -33,12 +32,12 @@
         "eggs": 10000,
         "juveniles": 10000,
         "susceptible_M": 50000,
-        "exposed_M":10000,
-        "infected_M":10000,
-        "susceptible_H":10000,
-        "exposed_H":1000,
-        "infected_H":1000,
-        "recovered_H":0
+        "exposed_M": 10000,
+        "infected_M": 10000,
+        "susceptible_H": 10000,
+        "exposed_H": 1000,
+        "infected_H": 1000,
+        "recovered_H": 0
     },
     "time_interval": [
         0,
@@ -52,7 +51,10 @@
                 0.1,
                 0.1
             ],
-            "bounds": [0,0.9]
+            "bounds": [
+                0,
+                0.9
+            ]
         },
         "mu_M": {
             "distribution": "normal",
@@ -60,7 +62,10 @@
                 0.1,
                 0.1
             ],
-            "bounds": [0,0.9]
+            "bounds": [
+                0,
+                0.9
+            ]
         }
     },
     "state_to_observable": [
@@ -94,7 +99,8 @@
         }
     ],
     "observable_standard_deviation": [
-        10000,20000
+        10000,
+        20000
     ],
     "number_of_samples": 400
 }
