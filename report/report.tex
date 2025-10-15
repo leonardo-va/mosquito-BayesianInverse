@@ -1,0 +1,426 @@
+% SASYR 2025 - Template based on:
+% samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass{article}
+%
+\usepackage{graphicx}
+\usepackage{lipsum}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{amssymb}
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+
+\graphicspath{{figures/}}
+\addbibresource{refs.bib}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+% \renewcommand\UrlFont{\color{blue}\rmfamily}
+
+\begin{document}
+\title{Software Practical Report\\\large Bayesian Inference of parameters in infectious disease model}
+\author{Leonardo Valle}
+%
+
+%
+\maketitle              % typeset the header of the contribution
+%
+
+\newpage
+
+\tableofcontents
+\section{Introduction}
+In epidemiology, the spread of infectious diseases is often modeled with a system of ordinary differential equations. 
+In the popular SIR-type models, the population that contracts and spreads the disease is split into several compartments, which reflect an individuals disease status. In a basic model, these would be susceptible, infectious, and recovered individuals. But more compartments can be added to get a better model, for example an exposed but not yet infectious category. The ODEs describe the transitions between those compartments. Several parameters, like incubation periods, disease transmission rates, or birth/death rates, are part of the model equations. These depend on the disease and the population, and might be unknown and unobservable in practice. 
+
+In this experiment, two coupled SIR models are used to model the spread of a disease between mosquitoes and hosts. 
+Under the assumption that the total mosquito population and the number of juvenile mosquitoes can be measured, the goal is to estimate the distribution of some unknown parameters. First, an ODE-solver is used to generate artificial measurements of the mosquito and juvenile populations from the ODE-model, with a fixed set of parameter values. Bayes rule defines the posterior distribution of the unknown parameters given the generated data. With Markov Chain Monte Carlo methods, we then sample from this posterior, in order to find out whether the parameters used in the data generation can be recovered. 
+
+In Section 2, the ODE-System is described in more detail. 
+
+Then in Section 3, the experiment is conducted, estimating a distribution for the parameters $\alpha$ and $\mu_H$, which describe death rates among juveniles and adult mosquitoes. The sampling process yields estimations for these parameters which do not exactly coincide with the true parameters, but which produce a long-term behavior of the model similar to the true parameters.
+
+Section 4 explains the user interface for the python program used here. It is possible to set up your own experiment, with different measured quantities and noise levels, as well as different target parameters to infer. 
+
+% For citations of references, use:
+% In \cite{einstein} Einstein....
+
+% In \cite{knuthwebsite} the authors
+
+% This \cite{latexcompanion} is Latex. 
+
+\section{Infectious disease model}
+The dynamics of mosquito and host populations are described by a system of ordinary differential equations (ODEs). Specifically, two coupled SEIR models are used. SEIR stands for susceptible, exposed, infectious, and recovered, a widely used framework for modeling the spread of infectious diseases in populations. In the SEIR model, individuals are classified into distinct compartments based on their disease status, and transitions between these compartments occur over time.
+In the context of the SEIR model:
+\begin{itemize}
+    \item \textbf{Susceptible (S)}: Individuals who are at risk of contracting the disease but have not yet been exposed.
+    \item \textbf{Exposed (E)}: Individuals who have been exposed to the disease but are not yet infectious. This stage typically corresponds to an incubation period.
+    \item \textbf{Infectious (I)}: Individuals who can spread the disease to others.
+    \item \textbf{Recovered (R)}: Individuals who have recovered from the disease and are assumed to be immune to reinfection (in the basic SEIR model).
+\end{itemize}
+
+These compartments and the transitions between them are governed by ordinary differential equations that describe how the populations of susceptible, exposed, infectious, and recovered individuals change over time. 
+
+For example, the susceptible population has a certain rate at which individuals become exposed to the disease. This rate increases with the number of infectious individuals and the size of the susceptible population itself. Thus, the derivative of the susceptible population depends on both the susceptible and infectious populations, which can be described by an ODE. The exact rate is a parameter in the model, which may be known from previous research in some cases, or treated as an unknown parameter to be inferred in the Bayesian inverse problem.
+
+The coupling of two SEIR models represents the interaction between two populations, namely mosquitoes and hosts, where disease transmission occurs between these two groups.
+
+
+The solution of the ode system are the population numbers as a function of time.  
+The model consists of the following 9 compartments/populations:
+
+\begin{itemize}
+    \item \( E \) = mosquito eggs
+    \item \( J \) = mosquito juveniles
+    \item \( S_M \) = susceptible mosquitoes
+    \item \( E_M \) = exposed mosquitoes
+    \item \( I_M \) = infected mosquitoes
+    \item \( S_H \) = susceptible hosts
+    \item \( E_H \) = exposed hosts
+    \item \( I_H \) = infectious hosts
+    \item \( R_H \) = recovered hosts
+\end{itemize}
+
+The interaction between These populations is visualized in Figure~\ref{mosquito_host_cycles}.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{mosquito_host_cycles.png}
+    \caption{Mosquito and hosts cycles, with transition rates}
+    \label{mosquito_host_cycles}
+\end{figure}
+
+In the mosquito cycle, we have the adult mosquito population, which can lay eggs at a certain rate. The ability to lay eggs depends on the ability to feed on a host, which means that this rate depends
+on the host population. The eggs develop into larvae and juveniles with time. The larva stage is omitted in our model and we go directly from eggs to juveniles. 
+
+The total host population is assumed to be roughly constant, and host death rates as well as birth rates cancel each other out. This is governed by a birth rate parameter which describes birth into the susceptible population. It is chosen in a way to offset the overall death rates. 
+Individuals move from susceptible to exposed and, after some incubation time, to infectious. After the infection is over, individuals become recovered. In our model, the recovered population cannot be infected again/don't become susceptible again. Note, this could easily be changed by injecting a term into the recovered and susceptible derivatives, to cause transitions between those.
+
+The infections happen exclusively between the mosquito and host populations. In this model, hosts and mosquitoes do not infect their own species. A mosquito becomes exposed by feeding on an infectious host, and a susceptible host becomes exposed by being bitten by an infectious mosquito. This way, the mosquito/host cycles are coupled. The rate to move from exposed to infectious represents an incubation period, and is dependent on the virus/bacteria. It may take some time for an exposed mosquito to develop infected salivary glands and for the host it will take some time from exposition to having infectious blood. The recovered population is omitted from the mosquitoes because of their short lifespan.
+
+The system of differential equations is given by:
+
+
+
+\scalebox{1.3}{ \begin{math}% Start math mode here, scale equations by 1.3
+\begin{aligned}
+\text{Mosquitoes} \quad
+&\left\{
+\begin{array}{rl}
+\dot{E}   &= \beta M - \delta_E E - \mu_E E \\
+\dot{J}   &= \delta_E E - \alpha J^2 - \mu_J J - \delta_J J \\
+\dot{S}_M &= \omega \delta_J J - a b_M \dfrac{S_M I_H}{N_H} - \mu_M S_M \\
+\dot{E}_M &= a b_M \dfrac{S_M I_H}{N_H} - (\alpha_M + \mu_M) E_M \\
+\dot{I}_M &= \alpha_M E_M - \mu_M I_M
+\end{array}
+\right. \\
+\\
+\text{Hosts} \quad
+&\left\{
+\begin{array}{rl}
+\dot{S}_H  &= \Lambda - a b_H \frac{I_M S_H}{N_H} - \mu_H S_H \\
+\dot{E}_H  &= a b_H \frac{I_M S_H}{N_H} - \alpha_H E_H - \mu_H E_H \\
+\dot{I}_H  &= \alpha_H E_H - \gamma_H I_H - \mu_H I_H \\
+\dot{R}_H  &= \gamma_H I_H - \mu_H R_H
+\end{array}
+\right.
+\end{aligned}\end{math}
+}
+
+\subsection{Model parameters}
+
+The model parameters depend on the mosquito species, the specific disease, and the host. Research on the transmission of the West Nile Virus between Culex pipiens (the common house mosquito) and birds (\cite{Heidecke2024.09.16.613097}, and \cite{Vogels2017-li}) found the values given in table \ref{tab:parameters}, for some of the model parameters.
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{parameter} & \textbf{description} & \textbf{value} & \textbf{source}\\
+\hline
+$\delta_E$ & eggs to juveniles rate & 0.6 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\mu_E$ & eggs mortality rate & 0.875 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\beta$ & egg laying rate & 3 & -\\
+$\alpha$ & juvenile competition & $2*10^{-6}$ & -\\
+$\delta_J$ & juvenile to adult rate & 0.09 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\mu_J$ & juvenile mortality rate & 0.1 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\omega$ & fraction of females in mosquito population & 0.5 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\mu_M$ & adult mosquito mortality rate & 0.1 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$a$ & biting rate & 0.2 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$b_M$ & probability of becoming infectious (mosquitoes) & 0.9 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\alpha_M$ & incubation period $^{-1}$ (mosquitoes) & 0.0333 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\Lambda$ & host birth rate & 12 & -\\
+$b_H$ & probability of becoming infectious (hosts) & 0.8 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\mu_H$ & mortality rate hosts & 0.001 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\alpha_H$ & incubation period $^{-1}$ (hosts) & 0.4 & \cite{Heidecke2024.09.16.613097}, \cite{Vogels2017-li}\\
+$\gamma$ & hosts recovery rate & 0.1818 & -\\
+\hline
+\end{tabular}
+\caption{Parameter values for West Nile Virus transmission between Culex pipiens and birds. Rates are in days$^{-1}$}
+\label{tab:parameters}
+\end{table}
+
+These parameter names are also used in the code for this software project.
+
+$\Lambda$ and $\mu_H$ control the total host population, and are unknown. They are chosen together, such that the total host population $S_H + E_H + I_H + R_h$ stays constant. 
+
+The term $-\alpha J^2$ in the second equation models competition between juveniles. The parameter $\alpha$ is unknown. To understand its impact on the mosquito population, and possibly figure out a sensible prior, the ODE system is simulated on the time interval $[0,40]$ (days), with different values for $\alpha$. The other parameters take the values from table \ref{tab:parameters}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{MosquitoPop.png}
+    \caption{Mosquito population over 40 days, for six different values of $\alpha$ together with the parameter values from table \ref{tab:parameters}}
+    \label{mosquitoPopulation}
+\end{figure}
+
+We can observe from figure \ref{mosquitoPopulation}, that for $\alpha \approx 2.5*10^{-6}$, the mosquito population remains stable over time. For larger values, the population goes extinct, and for smaller ones it grows. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{SIR.png}
+    \caption{SEIR compartments for hosts and mosquitoes, with $\alpha = 2*10^{-6}$}
+    \label{SIR}
+\end{figure}
+
+For the choice $\alpha = 2*10^{-6}$ (slightly increasing mosquito population), the SEIR compartments can be seen in figure \ref{SIR}. 
+
+\section{Bayesian inference}
+The fourth order Runge-Kutta method is used with a step size of $10^{-3}$ to calculate a solution of the ODE-system on a time interval $[t_0, t_N]$. The model parameters are set to the values given in \ref{tab:parameters}. The initial value at $t_0$ is given by:
+\begin{verbatim}
+    "initial_state":{
+        "eggs":10000,
+        "juveniles":10000,
+        "susceptible_m":50000,
+        "exposed_m":10000,
+        "infected_m":10000,
+        "susceptible_h":10000,
+        "exposed_h":1000,
+        "infected_h":1000,
+        "recovered_h":0
+    }
+\end{verbatim}
+This results in a grid of time points $[t_0, t_1, ..., t_N]$, and corresponding evaluations of the solution $[u_0, u_1, ..., u_N]$. A piecewise-linear interpolant between these discrete points yields a continuous approximation $f:[t_0,t_N]\rightarrow \mathbb{R}^9 $ of the solution, which can be evaluated anywhere on $[t_0, t_N]$.
+
+\[f(t) = \begin{bmatrix}
+f_1(t) \\
+f_2(t) \\
+f_3(t) \\
+f_4(t) \\
+f_5(t) \\
+f_6(t) \\
+f_7(t) \\
+f_8(t) \\
+f_9(t)
+\end{bmatrix} \approx \begin{bmatrix}
+E(t) \\
+J(t) \\
+S_M(t) \\
+E_M(t) \\
+I_M(t) \\
+S_H(t) \\
+E_H(t) \\
+I_H(t) \\
+R_H(t)
+\end{bmatrix}\]
+
+Then, from this solution we can generate fake data for Bayesian inference of the parameters. 
+In practice, most of the compartments in the model (for example, the number of infectious mosquitoes) cannot be measured. It is possible to obtain some very noisy measurements of the total number of adult mosquitoes in an area, and to estimate the number of juveniles in water reservoirs.
+Because of this, we do not want to use evaluations of $f$ directly as data, but instead restrict ourselves to the mentioned observable quantities.
+
+We select a set of $k$ points in time $r_0,...,r_k$ on the interval $[t_0,t_N]$, and calculate for $0\leq i \leq k$
+\[\text{number adult mosquitoes: }M_i = (f_3+f_4+f_5)(r_i) \approx (S_M + E_M + I_M)(r_i)\]
+\[\text{number of juveniles: } J_i = f_2(r_i) \approx J(r_i)\]
+Gaussian noise is added to both quantities. Since the population sizes in this experiment are in the thousands and tens of thousands, a large standard deviation $\sigma = 15000$ is chosen for the noise.
+Thus, for the data we have the model
+\[y_i \sim \mathcal{N}(\boldsymbol{\begin{bmatrix}
+M_i \\
+J_i 
+\end{bmatrix}}, 
+\boldsymbol{\begin{bmatrix}
+\sigma & 0 \\
+0 & \sigma
+\end{bmatrix}}).\]
+
+
+Next, the goal is to infer the parameters for juvenile competition and mosquito death rate 
+\[\theta:=\begin{bmatrix}\alpha \\ \mu_M\end{bmatrix}\] 
+from that data. The other parameters in \ref{tab:parameters} are assumed to be known, with the values given there. 
+Bayes rule yields the posterior density of $\theta$ given the data $y$:
+\[\pi_{\theta|Y}(\theta|y) = \frac{\pi_{Y|\theta}(y|\theta)\pi_{\theta}(\theta)}{\pi_{Y}(y)}\]
+Here, $\pi_{Y|\theta}(y|\theta)$ is the likelihood of the data given a parameter $\theta$, and $\pi_{\theta}(\theta)$ is the prior distribution.
+
+
+To obtain information on the distribution of $\theta$, samples are drawn from the posterior. This is done with the "No-U-Turn" sampler. This is a Markov Chain Monte-Carlo method, specifically a variant of the Hamiltonian Monte-Carlo method. The advantage of No-U-Turn and Hamiltonian Monte Carlo over other MCMC methods is faster convergence to the target distribution, and the possibility to sample in high-dimensional parameter spaces. This is achieved by making use of gradient information of the posterior, but comes at the cost of slower sampling.
+
+The Stan software package \cite{Stan} implements No-U-Turn, and is chosen for the sampling task in this experiment. 
+
+
+The sampler needs the following input:
+\begin{enumerate}
+\item A parameter-to-observable map. Here, this is the map $\begin{bmatrix} \alpha \\ \mu_M\end{bmatrix}\rightarrow \ \begin{bmatrix}M\\J\end{bmatrix}$, which includes the ODE and the solver, as described above.
+\item A prior distribution for the parameters. For $\alpha$, we choose a lognormal prior with mean $2*10^{-6}$. This choice is made based on the population development seen in $\ref{mosquitoPopulation}$. For $\mu_M$, the normal distribution $\mathcal{N}(0.1,0.1)$. 
+\item The observed data $y_i$, $0 \leq i \leq k$ and the noise model.
+\end{enumerate}
+
+It outputs samples for $\alpha$ and $\mu_M$ and some summary statistics, as well as some information about the sampling process, like acceptance probabilities for each sample. The output can be converted to a pandas data-frame, and stored in a csv file.
+
+\subsection{Results}
+The experiment is conducted as described above. We choose the number of measurements $k=200$ for the artificial data. With a time interval $[t_0,t_N]=[0,20]$, this would in practice mean ten measurements of M and J daily, which might be reasonable. Then, 2000 parameter pairs $\begin{bmatrix}\alpha \\ \mu_M\end{bmatrix}$ are sampled with the No-U-Turns method. The histograms of these samples are visualized in figure \ref{fig:samples_hist}. 
+
+\begin{figure}
+    \hspace*{-3cm}
+    \includegraphics[width=1.4\textwidth, height=0.8\textwidth]{samples_1760543509.4396787_evaluation.png}
+    \caption{Histogram of samples for the posteriors of $\alpha$ and $\mu_M$. The green lines are the true values used for generating the artificial data, the red lines are the posterior means.}
+    \label{fig:samples_hist}
+\end{figure}
+
+The green lines show the true parameters used to generate the artificial data. The priors were centered around those. We can see that the posteriors are very peaked around their mean, with a small variance. The priors look very different from these distributions, thus we can conclude that the measured data is informative and has a large impact on the posterior.
+
+We choose the mean of the posteriors $\hat\alpha \approx 9.8 * 10^{-6}$ and $\hat\mu_M \approx 0.042$ and simulate the disease model once more, now with these inferred values. The other model parameters keep their values from table \ref{tab:parameters}. The resulting mosquito population $M$ and juvenile population $J$ over time are visualized in figures \ref{fig:M_prediction} and \ref{fig:J_prediction}. The green line is the artificial data, and the red line is the new simulation based on the estimated parameters. The sampler does not recover the correct parameter pair, but the long-term trend of the populations matches very well.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth, height=0.8\textwidth]{adult_mean_pred.png}
+    \caption{Total mosquito population over 20 days. Green is the artificial data, red is the simulation based on the inferred parameters.}
+    \label{fig:M_prediction}
+\end{figure}
+
+\begin{figure}
+\centering
+    \includegraphics[width=1\textwidth, height=0.8\textwidth]{juvenile_mean_pred.png}
+    \caption{Juvenile mosquito population over 20 days. Green is the artificial data, red is the simulation based on the inferred parameters.}
+    \label{fig:J_prediction}
+\end{figure}
+
+
+
+
+\section{User Interface}
+The repository can be found here: \cite{SoftwarePractical}.\newline Clone the repository, and install the requirements listed in the README file found in the top-level folder. The code is found in the /src folder. Run main.py, to conduct the experiment in Section 3.
+
+The experiment can be modified in many different ways. For this, the setup.json file in the top-level folder has to be edited. After editing, save it and run main.py as before. The default setup from Section 3 can always be recovered by running parametersDefault.py (This overwrites the current setup!).
+\newpage
+The first field in the setup file are the models parameter names and values. 
+
+\begin{verbatim}
+"parameters": {
+        "delta_E": 0.6,
+        "mu_E": 0.875,
+        "beta": 3,
+        "alpha": 2e-06,
+        "delta_J": 0.09,
+        "mu_J": 0.1,
+        "omega": 0.5,
+        "mu_M": 0.1,
+        "a": 0.2,
+        "b_M": 0.9,
+        "alpha_M": 0.0333,
+        "Lambda": 12,
+        "b_H": 0.8,
+        "mu_H": 0.001,
+        "alpha_H": 0.4,
+        "gamma_H": 0.1818
+    }
+\end{verbatim}
+These are used to generate the artificial data and can be modified at will. Make sure that all necessary parameter names are present. The names necessary depend on the differential equations defined in the next field. Each of the names that show up here, have to be defined.
+\begin{verbatim}
+"ode_rhs": [
+        "beta*(u[3]+u[4]+u[5]) - (delta_E+mu_E)*u[1]",
+        "delta_E*u[1] - alpha*(u[2]^2) - mu_J*u[2] - delta_J*u[2]",
+        "omega*delta_J*u[2] - a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - mu_M*u[3]",
+        "a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - (alpha_M+mu_M)*u[4]",
+        "alpha_M*u[4] - mu_M*u[5]",
+        "Lambda - a*b_H*u[5]*u[6]/(u[6]+u[7]+u[8]+u[9]) - mu_H*u[6]",
+        "a*b_H*u[5]*u[6]/(u[6]+u[7]+u[8]+u[9]) - alpha_H*u[7] - mu_H*u[7]",
+        "alpha_H*u[7]-gamma_H*u[8]-mu_H*u[8]",
+        "gamma_H*u[8] - mu_H*u[9]"
+    ]
+\end{verbatim}
+This is the right-hand side of the disease model equation $u' = f(u)$. The equations can be modified or deleted, and new ones can be added. The following operators are supported:
+Multiplication (*), Addition (+), Subtraction(-), Division(/), Exponentials(\^{}), and python-like list indexing ([\quad]). Indexing begins at 1, not at 0. Each list element is one equation, and they are separated by a comma. Small u is a vector of the same size as the ode-rhs list. 
+\newpage
+The next entry is the initial value of the system at $t=t_0$:
+\begin{verbatim}
+ "initial_state": {
+        "eggs": 10000,
+        "juveniles": 10000,
+        "susceptible_m": 50000,
+        "exposed_m": 10000,
+        "infected_m": 10000,
+        "susceptible_h": 10000,
+        "exposed_h": 1000,
+        "infected_h": 1000,
+        "recovered_h": 0
+    }
+\end{verbatim}
+The values can be modified. This list needs to have the same size as the list of equations above.
+
+The time interval and the number of measurement fields define the time interval $[t_0, t_N]$ and the number of data points $k$.
+\begin{verbatim}
+{
+ "time_interval": [
+        0,
+        20
+    ],
+ "number_of_measurements": 200
+}
+\end{verbatim}
+
+Next, the unknown parameters and their priors are defined.
+\begin{verbatim}
+"inferred_parameters": {
+    "alpha": {
+        "distribution": "lognormal", "parameters": [-13.1, 0.5], "bounds": [0,1]},
+    "mu_M": {
+        "distribution": "normal", "parameters": [0.1,0.1], "bounds": [0,1]}
+}
+\end{verbatim}
+Other parameters can be added, or existing ones can be removed. The parameter names used here have to exist in the "parameters" field at the beginning. The supported distributions for the priors and the parameters that need to be passed (e.g., mean and variance for the normal distribution), can be found in the STAN-manual \cite{StanManual}. The "bounds" field is optional, and restricts the prior to the given interval. Since the parameters in this model are supposed to be greater than $0$, the lower bound of $0$ is always enforced, independent of the declaration in this field.
+
+Now, the state-to-observable maps are defined.
+\begin{verbatim}
+    "state_to_observable": [
+        {
+            "linear_combination": [0,0,1,1,1,0,0,0,0], 
+            "name": "number of mosquitoes"
+        },
+        {
+            "linear_combination": [0,1,0,0,0,0,0,0,0],
+            "name": "number of juveniles"
+        }
+    ]
+\end{verbatim}
+Only linear combinations are supported. Given a state $f=[f_1,...,f_d]$, the linear combination $[\alpha_1,...,\alpha_d]$ defines the quantity $\sum_{i=1}^{d}\alpha_if_i$. 
+
+Finally, the noise level for the data and the number of samples can be adjusted. We assume additive Gaussian noise:
+\begin{verbatim}
+   "observable_standard_deviation": [15000,15000],
+
+    "number_of_samples": 200
+\end{verbatim}
+
+In case other settings which are not part of the json file need adjustment (for example the solver accuracy or the warm-up period for Hamiltonian Monte Carlo), this has to be done directly in the code. The call to the Stan sampler is found in runSampler.py. Consult the Stan manual to find out which settings can be changed. Stan works by compiling a posterior from input data and a description of a model and the parameters. These descriptions are given in form of a string, using Stans own programming language. It resembles C++ code. This string is generated from your input in the json file, and can be viewed in stancode.txt in the top-Level Folder. In case you are familiar with Stans language, and want to Change the code directly, you can do so by inserting your own code in the runSampler() call in the main function, or by changing the json to code translation process, which can be found in jsonToModelCode.py.
+
+After sampling, the output will be saved as a csv file in the 
+/samples folder, together with some evaluation plots and the setup file that was used. The evaluation of the samples happens in sampleEvaluation.py. The evaluation can also be used as a command line tool on an existing csv file, without running the complete main function with the sampling process again. Use it like this:
+sampleEvaluation.py path-to-samples.csv
+
+At last, the artificial data generation can be found in runModel.py. It uses an ODE solver and an implementation of a piecewise linear interpolant. These classes are found in odeSolver.py. The odeSolver.solve() call returns a piecewise linear interpolant. This interpolant can be passed to the functions in visualization.py, in order to visualize several pre-defined quantities of interest. 
+
+
+
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+% \bibliographystyle{splncs04}
+% \bibliography{refs}
+\newpage
+\printbibliography
+%
+\end{document}

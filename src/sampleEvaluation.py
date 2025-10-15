@@ -76,7 +76,7 @@ def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, sa
         
 
 
-def compare_data_and_prediction(samplesDF, setup:dict):
+def compare_data_and_prediction(samplesDF, setup:dict, save_result_prefix):
     '''
     Compare the observables the true parameters would generate, with the observables the posterior mean would
     predict.
@@ -104,14 +104,17 @@ def compare_data_and_prediction(samplesDF, setup:dict):
                                                   setup["time_interval"][1],
                                                   (setup["time_interval"][0],list(setup["initial_state"].values())))
     for idx, observable in enumerate(setup["state_to_observable"]):
+    
         visualization.compare_gt_and_prediction(solution_interpolant_real, solution_interpolant_posterior_mean, 
                                 observable,
                                 stddev = setup['observable_standard_deviation'][idx],
-                                prediction_label = 'mean')
+                                prediction_label = 'mean',
+                                save_path = f"{save_result_prefix}_{observable['name']}_mean_prediction.png")
         visualization.compare_gt_and_prediction(solution_interpolant_real, solution_interpolant_posterior_map, 
                                 observable,
                                 stddev = setup['observable_standard_deviation'][idx],
-                                prediction_label = 'MAP')
+                                prediction_label = 'MAP',
+                                save_path = f"{save_result_prefix}_{observable['name']}_map_prediction.png")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -133,7 +136,7 @@ def main():
             generate_data_parameters = setup["parameters"]
             # sample_evaluation_from_csv(args.sample_path, generate_data_parameters)
             sampleEvaluation(samplesDF, generate_data_parameters, saveResultPath=save_evaluation_path)
-            compare_data_and_prediction(samplesDF, setup)
+            compare_data_and_prediction(samplesDF, setup, sample_path_no_extension)
         return
     else:
         sampleEvaluation(samplesDF, saveResultPath=save_evaluation_path)

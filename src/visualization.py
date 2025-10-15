@@ -65,21 +65,24 @@ def compare_gt_and_prediction(solution_interpolant_gt:PiecewiseLinearInterpolant
                               stddev = 0,
                               prediction_label = 'mean',
                               xlabel = 'days',
-                              ylabel = 'quantity'):
+                              ylabel = 'quantity',
+                              save_path = None):
     qoi_coefficients = observable['linear_combination']
     qoi_label = observable['name']
     qoi_gt = quantityOfInterest.linearCombinationQOI(solution_interpolant_gt, qoi_coefficients)
     qoi_pred = quantityOfInterest.linearCombinationQOI(solution_interpolant_pred, qoi_coefficients)
-    fig, axs = plt.subplots(1,1,figsize=(12,8))
+    # fig, axs = plt.subplots(1,1,figsize=(12,8))
     
-    axs.plot(qoi_gt.grid, qoi_gt.values, label=f"{qoi_label} groundtruth", color="green")
+    plt.plot(qoi_gt.grid, qoi_gt.values, label=f"{qoi_label} groundtruth", color="green")
     if(stddev > 0):
-        axs.fill_between(qoi_gt.grid.flatten(), qoi_gt.values - stddev, qoi_gt.values + stddev, 
+        plt.fill_between(qoi_gt.grid.flatten(), qoi_gt.values - stddev, qoi_gt.values + stddev, 
                          color='lightblue', alpha=0.5, label='±1 Std Dev')
-    axs.plot(qoi_pred.grid, qoi_pred.values, label=f"{qoi_label} {prediction_label} prediction", color="red")
-    axs.set_xlabel(xlabel)
-    axs.set_ylabel(ylabel)
-    axs.legend()
+    plt.plot(qoi_pred.grid, qoi_pred.values, label=f"{qoi_label} {prediction_label} prediction", color="red")
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()
+    if(save_path is not None):
+        plt.savefig(save_path)
     plt.show()
     
 
