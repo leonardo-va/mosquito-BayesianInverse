@@ -64,9 +64,8 @@ def main():
 
     samples_csv_path = runSampler.save_samples(samples_dataframe, os.path.join(_get_root_dir(), "samples"), setup)
 
-    f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png"
     sampleEvaluation.sampleEvaluation(samples_dataframe, 
-                     generateDataParameters=setup["parameters"], 
+                     setup['parameters'], 
                      saveResultPath=f"{os.path.splitext(samples_csv_path)[0]}_evaluation.png")
     sampleEvaluation.compare_data_and_prediction(samples_dataframe, setup)
 

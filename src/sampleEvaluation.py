@@ -46,6 +46,36 @@ def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, sa
         fig.savefig(saveResultPath)
     plt.show()
 
+# def sampleEvaluation(samplesDF:DataFrame, setup:dict = None, saveResultPrefix = None):
+#     inferedParameterNames = []
+#     prior_list = {"normal": np.random.normal,
+#                   "lognormal": np.random.lognormal,
+#                   "uniform":np.random.uniform}
+#     for colname in samplesDF.columns.tolist():
+#         if (not colname.endswith("__") and not colname=='draws'):
+#             inferedParameterNames.append(colname)
+#     for idx, parameterName in enumerate(inferedParameterNames):
+#         posterior_samples = samplesDF[parameterName]
+#         true_param_value = setup['parameters'][parameterName]
+#         if(saveResultPrefix is not None):
+#             saveResultPath = saveResultPrefix + f"_{parameterName}.png"
+#         # try to sample from prior. The numpy names and stan names for the distribution might be different, then this wont work because the 
+#         # setup uses stan names
+#         try:
+#             distribution = setup['inferred_parameters'][parameterName]['distribution']
+#             distribution_parameters = setup['inferred_parameters'][parameterName]['parameters']
+#             prior_samples = prior_list[distribution](*distribution_parameters, setup["number_of_samples"])
+#         except:
+#             prior_samples = None
+#             print("sample evaluation :: failed prior sampling, visualize without prior")
+#         visualization.visualize_prior_to_posterior(posterior_samples, 
+#                                                    parameterName, 
+#                                                    true_param_value, 
+#                                                    prior_samples = prior_samples, 
+#                                                    save_result_path = saveResultPath)
+        
+
+
 def compare_data_and_prediction(samplesDF, setup:dict):
     '''
     Compare the observables the true parameters would generate, with the observables the posterior mean would

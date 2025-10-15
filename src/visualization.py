@@ -2,6 +2,7 @@ from odeSolver import PiecewiseLinearInterpolant
 from matplotlib import pyplot as plt
 import quantityOfInterest
 import numpy as np
+from scipy.stats import gaussian_kde
 
 def plotQoi(qoi, label = ""):
     plt.plot(qoi.grid, qoi.values)
@@ -75,7 +76,7 @@ def compare_gt_and_prediction(solution_interpolant_gt:PiecewiseLinearInterpolant
     if(stddev > 0):
         axs.fill_between(qoi_gt.grid.flatten(), qoi_gt.values - stddev, qoi_gt.values + stddev, 
                          color='lightblue', alpha=0.5, label='±1 Std Dev')
-    axs.plot(qoi_pred.grid, qoi_pred.values, label=f"{qoi_label} {prediction_label}", color="red")
+    axs.plot(qoi_pred.grid, qoi_pred.values, label=f"{qoi_label} {prediction_label} prediction", color="red")
     axs.set_xlabel(xlabel)
     axs.set_ylabel(ylabel)
     axs.legend()
@@ -99,6 +100,27 @@ def visualize_artificial_data(data, qoi_names):
         plt.legend()
         plt.show()
 
-def visualize_prior_to_posterior():
-    pass
+def visualize_prior_to_posterior(posterior_samples, parameter_name = '', true_param_value = None, prior_samples = None, save_result_path = None):
+    kde = gaussian_kde(posterior_samples)
+    xs = np.linspace(min(posterior_samples), max(posterior_samples), 1000)
+    ys = kde(xs)
+    posterior_map = xs[np.argmax(ys)]
+    posterior_mean = np.mean(posterior_samples)
+    nBins_posterior = int(np.ceil(len(posterior_samples/100)))
+    plt.hist(posterior_samples,nBins_posterior, color = 'blue',alpha=0.6, label = 'posterior')
+    plt.axvline(posterior_mean, color='red', label=f"samples mean: {posterior_mean:.4g}")
+    plt.axvline(posterior_map, color = 'blue', label=f"MAP point: {posterior_map:.4g}")
+    plt.title(parameter_name)
+    if(true_param_value is not None):
+        plt.axvline(true_param_value, color = 'lightgreen', label=f'true value: {true_param_value:.4g}')
+    if(prior_samples is not None):
+        nBins_prior = int(np.ceil(len(prior_samples/100)))
+        plt.hist(prior_samples, nBins_prior, color='lightblue', alpha=0.6, label = 'prior')
+    plt.legend()
+    if(save_result_path is not None):
+        plt.savefig(save_result_path)
+    plt.show()
+    
+    
+    
    

@@ -2,6 +2,13 @@ import numpy as np
 import re
 
 def validate_setup(setup:dict):
+    n_equations = len(setup['ode_rhs'])
+    n_observables = len(setup['state_to_observable'])
+    assert(n_equations == len(setup['initial_state']))
+    assert(n_observables == len(setup['observable_standard_deviation']))
+    for observable in setup['state_to_observable']:
+        assert(len(observable['linear_combination'])==n_equations)
+    
     pass
 
 def _generate_stan_model_function(setup:dict):
