@@ -37,17 +37,40 @@
 
 \tableofcontents
 \section{Introduction}
-In epidemiology, the spread of infectious diseases is often modeled with a system of ordinary differential equations. 
-In the popular SIR-type models, the population that contracts and spreads the disease is split into several compartments, which reflect an individuals disease status. In a basic model, these would be susceptible, infectious, and recovered individuals. But more compartments can be added to get a better model, for example an exposed but not yet infectious category. The ODEs describe the transitions between those compartments. Several parameters, like incubation periods, disease transmission rates, or birth/death rates, are part of the model equations. These depend on the disease and the population, and might be unknown and unobservable in practice. 
+In epidemiology, the spread of infectious diseases is often modeled with a system of 
+ordinary differential equations. 
+In the popular SIR-type models, the population that contracts and spreads the disease is 
+split into several compartments, which reflect an individuals disease status. In a basic 
+model, these would be susceptible, infectious, and recovered individuals. But more compartments 
+can be added to get a better model, for example an exposed but not yet infectious category. 
+The ODEs describe the transitions between those compartments. Several parameters, like 
+incubation periods, disease transmission rates, or birth/death rates, are part of the model 
+equations. These depend on the disease and the population, and might be unknown and unobservable 
+in practice. 
 
-In this experiment, two coupled SIR models are used to model the spread of a disease between mosquitoes and hosts. 
-Under the assumption that the total mosquito population and the number of juvenile mosquitoes can be measured, the goal is to estimate the distribution of some unknown parameters. First, an ODE-solver is used to generate artificial measurements of the mosquito and juvenile populations from the ODE-model, with a fixed set of parameter values. Bayes rule defines the posterior distribution of the unknown parameters given the generated data. With Markov Chain Monte Carlo methods, we then sample from this posterior, in order to find out whether the parameters used in the data generation can be recovered. 
+In this experiment, two coupled SIR models are used to model the spread of a disease between 
+mosquitoes and hosts. Synthetic data is created by simulating the ODE model over a time span
+of 100 days with a set of ground truth parameters. The ground truth parameters are informed by 
+previous research on the spread of the West Nile Virus among the mosquito species "Culex pipiens" 
+and birds \cite{Heidecke2024.09.16.613097} \cite{Vogels2017-li}. 
+From this ODE solution, the number of total adult mosquitoes and number of juveniles are derived at 
+different times. These quantities are regarded as observable, and serve as artificial data.
+It is assumed that the data is affected by additive Gaussian noise. The goal is to recover
+the ground truth parameters from the noisy data with a Bayesian approach. The parameters are treated 
+as unknowns, and Bayes rule defines a posterior distribution for the unknown parameters given the 
+generated data. With Markov Chain Monte Carlo methods, we then sample from this posterior, and use the
+the mean and the maximum a posteriori (MAP) estimate as point estimates for the parameters. 
 
 In Section 2, the ODE-System is described in more detail. 
 
-Then in Section 3, the experiment is conducted, estimating a distribution for the parameters $\alpha$ and $\mu_H$, which describe death rates among juveniles and adult mosquitoes. The sampling process yields estimations for these parameters which do not exactly coincide with the true parameters, but which produce a long-term behavior of the model similar to the true parameters.
+Then in Section 3, the experiment is conducted, estimating a distribution for the parameters 
+$\alpha$ and $\mu_H$, which describe death rates among juveniles and adult mosquitoes. We 
+find that these distributions are very concentrated and unimodal around the true parameter 
+values, even when using only weakly informative priors.
 
-Section 4 explains the user interface for the python program used here. It is possible to set up your own experiment, with different measured quantities and noise levels, as well as different target parameters to infer. 
+Section 4 explains the user interface for the python program used here. It is possible to set 
+up your own experiment, with different measured quantities and noise levels, as well as 
+different target parameters to infer. 
 
 % For citations of references, use:
 % In \cite{einstein} Einstein....
@@ -57,7 +80,11 @@ Section 4 explains the user interface for the python program used here. It is po
 % This \cite{latexcompanion} is Latex. 
 
 \section{Infectious disease model}
-The dynamics of mosquito and host populations are described by a system of ordinary differential equations (ODEs). Specifically, two coupled SEIR models are used. SEIR stands for susceptible, exposed, infectious, and recovered, a widely used framework for modeling the spread of infectious diseases in populations. In the SEIR model, individuals are classified into distinct compartments based on their disease status, and transitions between these compartments occur over time.
+The dynamics of mosquito and host populations are described by a system of ordinary differential 
+equations (ODEs). Specifically, two coupled SEIR models are used. SEIR stands for susceptible, 
+exposed, infectious, and recovered, a widely used framework for modeling the spread of infectious 
+diseases in populations. In the SEIR model, individuals are classified into distinct compartments 
+based on their disease status, and transitions between these compartments occur over time.
 In the context of the SEIR model:
 \begin{itemize}
     \item \textbf{Susceptible (S)}: Individuals who are at risk of contracting the disease but have not yet been exposed.
@@ -66,12 +93,11 @@ In the context of the SEIR model:
     \item \textbf{Recovered (R)}: Individuals who have recovered from the disease and are assumed to be immune to reinfection (in the basic SEIR model).
 \end{itemize}
 
-These compartments and the transitions between them are governed by ordinary differential equations that describe how the populations of susceptible, exposed, infectious, and recovered individuals change over time. 
+These compartments and the transitions between them are governed by coupled ODEs, that describe how the 
+populations of susceptible, exposed, infectious, and recovered individuals change over time. 
 
-For example, the susceptible population has a certain rate at which individuals become exposed to the disease. This rate increases with the number of infectious individuals and the size of the susceptible population itself. Thus, the derivative of the susceptible population depends on both the susceptible and infectious populations, which can be described by an ODE. The exact rate is a parameter in the model, which may be known from previous research in some cases, or treated as an unknown parameter to be inferred in the Bayesian inverse problem.
-
-The coupling of two SEIR models represents the interaction between two populations, namely mosquitoes and hosts, where disease transmission occurs between these two groups.
-
+The coupling of two SEIR models represents the interaction between two populations, namely mosquitoes and hosts, 
+where disease transmission occurs between these two groups.
 
 The solution of the ode system are the population numbers as a function of time.  
 The model consists of the following 9 compartments/populations:
@@ -92,19 +118,34 @@ The interaction between These populations is visualized in Figure~\ref{mosquito_
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{mosquito_host_cycles.png}
-    \caption{Mosquito and hosts cycles, with transition rates}
+    \caption{Mosquito and hosts life/transition cycles, with transition rates (arrows) \cite{Heidecke2024.09.16.613097}}
     \label{mosquito_host_cycles}
 \end{figure}
 
-In the mosquito cycle, we have the adult mosquito population, which can lay eggs at a certain rate. The ability to lay eggs depends on the ability to feed on a host, which means that this rate depends
-on the host population. The eggs develop into larvae and juveniles with time. The larva stage is omitted in our model and we go directly from eggs to juveniles. 
+In the mosquito life cycle, we have the adult mosquito population, which can lay eggs at a certain rate. 
+The ability to lay eggs depends on the ability to feed on a host, which means that derivative of the
+eggs compartment depends on the host population. The eggs develop into larvae and juveniles with time. 
+The larva stage is omitted in our model and we go directly from eggs to juveniles. 
 
-The total host population is assumed to be roughly constant, and host death rates as well as birth rates cancel each other out. This is governed by a birth rate parameter which describes birth into the susceptible population. It is chosen in a way to offset the overall death rates. 
-Individuals move from susceptible to exposed and, after some incubation time, to infectious. After the infection is over, individuals become recovered. In our model, the recovered population cannot be infected again/don't become susceptible again. Note, this could easily be changed by injecting a term into the recovered and susceptible derivatives, to cause transitions between those.
+The total host population is assumed to be roughly constant. This is governed by the source term $\Lambda$,
+which describes birth into the susceptible population. It is chosen in a way to offset the overall host deaths. 
+Individuals move from susceptible to exposed and, after some incubation time, to infectious. After 
+the infection is over, individuals become recovered. In our model, the recovered population cannot 
+be infected again, and thus they stay recovered indefinitely and don't move to susceptible again. Note, 
+this could easily be changed by injecting a term into the recovered and susceptible derivatives, to cause 
+transitions between those.
 
-The infections happen exclusively between the mosquito and host populations. In this model, hosts and mosquitoes do not infect their own species. A mosquito becomes exposed by feeding on an infectious host, and a susceptible host becomes exposed by being bitten by an infectious mosquito. This way, the mosquito/host cycles are coupled. The rate to move from exposed to infectious represents an incubation period, and is dependent on the virus/bacteria. It may take some time for an exposed mosquito to develop infected salivary glands and for the host it will take some time from exposition to having infectious blood. The recovered population is omitted from the mosquitoes because of their short lifespan.
+The infections happen exclusively between the mosquito and host populations. In this model, hosts 
+and mosquitoes do not infect their own species. A mosquito becomes exposed by feeding on an infectious 
+host, and a susceptible host becomes exposed by being bitten by an infectious mosquito. This way, 
+the mosquito/host cycles are coupled. The rate to move from exposed to infectious represents an 
+incubation period, and is dependent on the virus/bacteria. It may take some time for an exposed 
+mosquito to develop infected salivary glands and for the host it will take some time from exposition 
+to having infectious blood. The recovered population is omitted from the mosquitoes because of their 
+short lifespan.
 
-The system of differential equations is given by:
+We consider the following model equations, with the parameters explained in the next section.
+The parameters we try to infer are highlighted in red:
 
 
 
@@ -114,18 +155,18 @@ The system of differential equations is given by:
 &\left\{
 \begin{array}{rl}
 \dot{E}   &= \beta M - \delta_E E - \mu_E E \\
-\dot{J}   &= \delta_E E - \alpha J^2 - \mu_J J - \delta_J J \\
-\dot{S}_M &= \omega \delta_J J - a b_M \dfrac{S_M I_H}{N_H} - \mu_M S_M \\
-\dot{E}_M &= a b_M \dfrac{S_M I_H}{N_H} - (\alpha_M + \mu_M) E_M \\
-\dot{I}_M &= \alpha_M E_M - \mu_M I_M
+\dot{J}   &= \delta_E E - \textcolor{red}{\alpha} J^2 - \mu_J J - \delta_J J \\
+\dot{S}_M &= \omega \delta_J J - a b_M \dfrac{S_M I_H}{N_H} - \textcolor{red}{\mu_M} S_M \\
+\dot{E}_M &= a b_M \dfrac{S_M I_H}{N_H} - (\alpha_M + \textcolor{red}{\mu_M}) E_M \\
+\dot{I}_M &= \alpha_M E_M - \textcolor{red}{\mu_M} I_M
 \end{array}
 \right. \\
 \\
 \text{Hosts} \quad
 &\left\{
 \begin{array}{rl}
-\dot{S}_H  &= \Lambda - a b_H \frac{I_M S_H}{N_H} - \mu_H S_H \\
-\dot{E}_H  &= a b_H \frac{I_M S_H}{N_H} - \alpha_H E_H - \mu_H E_H \\
+\dot{S}_H  &= \Lambda - a b_H \frac{I_M S_H}{N_M} - \mu_H S_H \\
+\dot{E}_H  &= a b_H \frac{I_M S_H}{N_M} - \alpha_H E_H - \mu_H E_H \\
 \dot{I}_H  &= \alpha_H E_H - \gamma_H I_H - \mu_H I_H \\
 \dot{R}_H  &= \gamma_H I_H - \mu_H R_H
 \end{array}
@@ -135,7 +176,10 @@ The system of differential equations is given by:
 
 \subsection{Model parameters}
 
-The model parameters depend on the mosquito species, the specific disease, and the host. Research on the transmission of the West Nile Virus between Culex pipiens (the common house mosquito) and birds (\cite{Heidecke2024.09.16.613097}, and \cite{Vogels2017-li}) found the values given in table \ref{tab:parameters}, for some of the model parameters.
+The model parameters depend on the mosquito species, the specific disease, and the host. 
+Research on the transmission of the West Nile Virus between Culex pipiens 
+(the common house mosquito) and birds (\cite{Heidecke2024.09.16.613097}, and \cite{Vogels2017-li}) found the 
+values given in table \ref{tab:parameters}, for some of the model parameters.
 \begin{table}[h!]
 \centering
 \begin{tabular}{|c|c|c|c|}
