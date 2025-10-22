@@ -9,7 +9,6 @@ def validate_setup(setup:dict):
     for observable in setup['state_to_observable']:
         assert(len(observable['linear_combination'])==n_equations)
     
-    pass
 
 def _generate_stan_model_function(setup:dict):
     declaration = """vector sho(real t, vector u"""
