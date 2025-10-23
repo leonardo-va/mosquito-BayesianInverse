@@ -16,6 +16,19 @@ def map_estimate_continuous(values):
     ys = kde(xs)
     return xs[np.argmax(ys)]
 
+def show_summary(summary:dict):
+    print("----------------------------------\nsummary\n----------------------------------\n")
+    num_chains, num_samples, ess_bulk, ess_tail, sampling_time_s, num_warmup = summary.values()
+    total_num_samples = num_chains * num_samples
+    print(f"time to sample from {num_chains} chains with {num_samples} samples each: {sampling_time_s:.4g} s")
+    print(f"average time per sample: {sampling_time_s/(num_chains*num_samples):.4g}s")
+    print(f"number of warmup samples per chain: {num_warmup}")
+    for param_name,  ess_bulk_val in ess_bulk.data_vars.items():
+        print(f"effective sample size (bulk) for {param_name}: {ess_bulk_val.values:.4g} out of {total_num_samples} samples ({100*ess_bulk_val.values/total_num_samples:.4g}%)")
+        print(f"effective sample size (tails) for {param_name}: {ess_tail.data_vars[param_name].values:.4g} out of {total_num_samples} samples ({100*ess_tail.data_vars[param_name].values/total_num_samples:.4g}%)")
+        print(f"average time per independent sample({param_name}): {sampling_time_s/(num_chains*ess_bulk_val.values):.4g} s")
+    print("----------------------------------\n----------------------------------\n")
+
 def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, saveResultPath = None):
     inferedParameterNames = []
     for colname in samplesDF.columns.tolist():

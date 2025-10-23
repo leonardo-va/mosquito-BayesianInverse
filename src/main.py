@@ -46,7 +46,8 @@ def main():
     # generateDefaultSetup(os.path.join(_get_root_dir(), "defaultsetup.json"))
     
     try:
-        runModel.generate_report_plots(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
+        # runModel.generate_report_plots(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
+        pass
     except:
         print("generating plots failed, continuing with data generation and sampling")
 
@@ -60,7 +61,9 @@ def main():
     visualization.visualize_artificial_data(data, qoi_names)
     
     # build and run the sampler 
-    samples_dataframe = runSampler.sample(stan_code = stan_code, data = data.noisyData, num_samples = setup["number_of_samples"])
+    samples_dataframe, summary = runSampler.sample(stan_code = stan_code, data = data.noisyData, num_samples = setup["number_of_samples"])
+
+    sampleEvaluation.show_summary(summary)
 
     samples_csv_path = runSampler.save_samples(samples_dataframe, os.path.join(_get_root_dir(), "samples"), setup)
 
