@@ -65,19 +65,12 @@ In Section 2, the ODE-System is described in more detail.
 
 Then in Section 3, the experiment is conducted, estimating a distribution for the parameters 
 $\alpha$ and $\mu_H$, which describe death rates among juveniles and adult mosquitoes. We 
-find that these distributions are very concentrated and unimodal around the true parameter 
+find that these distributions are unimodal and concentrated around the true parameter 
 values, even when using only weakly informative priors.
 
 Section 4 explains the user interface for the python program used here. It is possible to set 
 up your own experiment, with different measured quantities and noise levels, as well as 
 different target parameters to infer. 
-
-% For citations of references, use:
-% In \cite{einstein} Einstein....
-
-% In \cite{knuthwebsite} the authors
-
-% This \cite{latexcompanion} is Latex. 
 
 \section{Infectious disease model}
 The dynamics of mosquito and host populations are described by a system of ordinary differential 
@@ -138,9 +131,9 @@ transitions between those.
 The infections happen exclusively between the mosquito and host populations. In this model, hosts 
 and mosquitoes do not infect their own species. A mosquito becomes exposed by feeding on an infectious 
 host, and a susceptible host becomes exposed by being bitten by an infectious mosquito. This way, 
-the mosquito/host cycles are coupled. The rate to move from exposed to infectious represents an 
-incubation period, and is dependent on the virus/bacteria. It may take some time for an exposed 
-mosquito to develop infected salivary glands and for the host it will take some time from exposition 
+the mosquito/host cycles are coupled. The rate to move from exposed to infectious models an 
+incubation period, and is dependent on the disease. It may take some time for an exposed 
+mosquito to develop infected salivary glands, and for the host it will take some time from exposition 
 to having infectious blood. The recovered population is omitted from the mosquitoes because of their 
 short lifespan.
 

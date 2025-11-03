@@ -7,8 +7,10 @@ import os
 import odeSolver
 from jsonToModelCode import generate_py_model_function
 import visualization
-import quantityOfInterest
-from scipy.stats import gaussian_kde
+from itertools import combinations
+from scipy.stats import gaussian_kde, multivariate_normal
+from matplotlib import pyplot as plt
+import seaborn as sns
 
 def map_estimate_continuous(values):
     kde = gaussian_kde(values)
@@ -16,7 +18,14 @@ def map_estimate_continuous(values):
     ys = kde(xs)
     return xs[np.argmax(ys)]
 
-def show_summary(summary:dict):
+def parameterNamesFromResultDf(samplesDF:DataFrame):
+    inferedParameterNames = []
+    for colname in samplesDF.columns.tolist():
+        if (not colname.endswith("__") and not colname=='draws'):
+            inferedParameterNames.append(colname)
+    return inferedParameterNames
+
+def show_summary(summary:dict, save_result_path = None):
     print("----------------------------------\nsummary\n----------------------------------\n")
     num_chains, num_samples, ess_bulk, ess_tail, sampling_time_s, num_warmup = summary.values()
     total_num_samples = num_chains * num_samples
@@ -26,21 +35,80 @@ def show_summary(summary:dict):
     for param_name,  ess_bulk_val in ess_bulk.data_vars.items():
         print(f"effective sample size (bulk) for {param_name}: {ess_bulk_val.values:.4g} out of {total_num_samples} samples ({100*ess_bulk_val.values/total_num_samples:.4g}%)")
         print(f"effective sample size (tails) for {param_name}: {ess_tail.data_vars[param_name].values:.4g} out of {total_num_samples} samples ({100*ess_tail.data_vars[param_name].values/total_num_samples:.4g}%)")
-        print(f"average time per independent sample({param_name}): {sampling_time_s/(num_chains*ess_bulk_val.values):.4g} s")
+        print(f"average time per independent sample({param_name}): {sampling_time_s/(ess_bulk_val.values):.4g} s")
     print("----------------------------------\n----------------------------------\n")
+    if save_result_path is not None:
+        with open(save_result_path, "w") as summary_json:
+            json.dump(summary, summary_json, indent=4)
+
+
+
+def correlation_plots(samplesDF:DataFrame, saveResultPath = None):
+    
+    inferredParameterNames = parameterNamesFromResultDf(samplesDF)
+    if(len(inferredParameterNames) == 1): 
+        print("only one unknown parameter, no correlation plot")
+        return
+    param_index_combinations = [(pair[1],pair[0]) for pair in list(combinations(np.arange(len(inferredParameterNames)),2))]
+    param_combinations = [(inferredParameterNames[pair[0]],inferredParameterNames[pair[1]]) for pair in param_index_combinations]
+    fig, axes = plt.subplots(len(inferredParameterNames), len(inferredParameterNames), figsize=(12, 4), sharex=False, sharey=False)
+    for idx,p_combination in enumerate(param_combinations):
+        data_2d = samplesDF[[p_combination[1], p_combination[0]]].values
+        mean_est_original = np.mean(data_2d, axis=0)
+        scale = 1/mean_est_original
+        data_scaled = data_2d*scale
+        mean_est = np.mean(data_scaled, axis = 0)
+        cov_est = np.cov(data_scaled, rowvar=False)
+        corr_est = cov_est/np.outer(np.sqrt(np.diag(cov_est)), np.sqrt(np.diag(cov_est)))
+
+        x_scaled, y_scaled = np.mgrid[
+            data_scaled[:, 0].min():data_scaled[:, 0].max():0.001,
+            data_scaled[:, 1].min():data_scaled[:, 1].max():0.001
+        ]
+    
+        x = x_scaled*1/scale[0]
+        y = y_scaled * 1/scale[1]
+        pos = np.dstack((x_scaled, y_scaled))
+        rv = multivariate_normal(mean_est, cov_est, allow_singular=False)
+        z = rv.pdf(pos)
+        ax = axes[param_index_combinations[idx][0], param_index_combinations[idx][1]]
+        # ax.figure(figsize=(8, 6))
+        ax.scatter(data_2d[:, 0], data_2d[:, 1], s=5, alpha=0.6)
+        ax.plot([],[], label=f"correlation: {corr_est[0,1]:.3f}")
+        ax.contour(x, y, z, levels=10, cmap='viridis')
+        # ax.set_xlabel(p_combination[0])
+        # ax.set_ylabel(p_combination[1])
+        # plt.text(0.05,0.95,s=f"correlation: {corr_est[0,1]:.3f}")
+        # ax.set_title(f"Scatterplot ({p_combination[0]},{p_combination[1]})")
+        ax.legend()
+    for ax, col in zip(axes[0], inferredParameterNames):
+        ax.set_title(col, fontsize=12, pad=15)  # column names above top row
+
+    for ax, row in zip(axes[:,0], inferredParameterNames):
+        ax.set_ylabel(row, rotation=0, labelpad=40, fontsize=12, va='center')
+    fig.subplots_adjust(wspace=0.5, hspace=0.5) 
+    if(saveResultPath is not None):
+        fig.savefig(saveResultPath)
+    fig.show()
+    
+    
+
+
 
 def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, saveResultPath = None):
-    inferedParameterNames = []
-    for colname in samplesDF.columns.tolist():
-        if (not colname.endswith("__") and not colname=='draws'):
-            inferedParameterNames.append(colname)
-    nSubplotRows = int(np.ceil(len(inferedParameterNames)/3))
+    # inferredParameterNames = []
+    # for colname in samplesDF.columns.tolist():
+    #     if (not colname.endswith("__") and not colname=='draws'):
+    #         inferredParameterNames.append(colname)
+    correlation_plots(samplesDF, f"{os.path.splitext(saveResultPath)[0]}_correlation.png")
+    inferredParameterNames = parameterNamesFromResultDf(samplesDF)
+    nSubplotRows = int(np.ceil(len(inferredParameterNames)/3))
     nSamples = samplesDF.shape[0]
     nBins = int(np.ceil(nSamples/100))
     fig, axs = plt.subplots(nSubplotRows,3,figsize=(16,11))
     if(nSubplotRows == 1):
         axs = np.expand_dims(axs, axis=0)
-    for idx, parameterName in enumerate(inferedParameterNames):
+    for idx, parameterName in enumerate(inferredParameterNames):
         fig_row, fig_col = int(np.floor(idx/3)),idx%3
         currentAx = axs[fig_row, fig_col]
         samples = samplesDF[parameterName]
@@ -48,47 +116,19 @@ def sampleEvaluation(samplesDF:DataFrame, generateDataParameters:dict = None, sa
         samplesMAP = map_estimate_continuous(samples)
         print(f"samples mean {parameterName}: {samplesMean}")
         print(f"samples MAP {parameterName}: {samplesMAP}")
-        currentAx.hist(samples,nBins,alpha=0.6)
+        # currentAx.hist(samples,nBins,alpha=0.6)
         if(generateDataParameters is not None):
             currentAx.axvline(generateDataParameters[parameterName], color='lightgreen', label=f"true value: {generateDataParameters[parameterName]:.4g}")
             currentAx.axvline(samplesMean, color='red', label=f"samples mean: {samplesMean:.4g}")
             currentAx.axvline(samplesMAP, color = 'blue', label=f"MAP point: {samplesMAP:.4g}")
+            sns.kdeplot(samples, ax= currentAx, fill=True)
+        # plt.show()
         currentAx.set_title(parameterName)
         currentAx.legend()
     if(saveResultPath is not None):
         fig.savefig(saveResultPath)
     plt.show()
-
-# def sampleEvaluation(samplesDF:DataFrame, setup:dict = None, saveResultPrefix = None):
-#     inferedParameterNames = []
-#     prior_list = {"normal": np.random.normal,
-#                   "lognormal": np.random.lognormal,
-#                   "uniform":np.random.uniform}
-#     for colname in samplesDF.columns.tolist():
-#         if (not colname.endswith("__") and not colname=='draws'):
-#             inferedParameterNames.append(colname)
-#     for idx, parameterName in enumerate(inferedParameterNames):
-#         posterior_samples = samplesDF[parameterName]
-#         true_param_value = setup['parameters'][parameterName]
-#         if(saveResultPrefix is not None):
-#             saveResultPath = saveResultPrefix + f"_{parameterName}.png"
-#         # try to sample from prior. The numpy names and stan names for the distribution might be different, then this wont work because the 
-#         # setup uses stan names
-#         try:
-#             distribution = setup['inferred_parameters'][parameterName]['distribution']
-#             distribution_parameters = setup['inferred_parameters'][parameterName]['parameters']
-#             prior_samples = prior_list[distribution](*distribution_parameters, setup["number_of_samples"])
-#         except:
-#             prior_samples = None
-#             print("sample evaluation :: failed prior sampling, visualize without prior")
-#         visualization.visualize_prior_to_posterior(posterior_samples, 
-#                                                    parameterName, 
-#                                                    true_param_value, 
-#                                                    prior_samples = prior_samples, 
-#                                                    save_result_path = saveResultPath)
         
-
-
 def compare_data_and_prediction(samplesDF, setup:dict, save_result_prefix):
     '''
     Compare the observables the true parameters would generate, with the observables the posterior mean would

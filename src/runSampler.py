@@ -33,19 +33,6 @@ def sample(stan_code:str, data:dict, num_samples:int):
     print(df.describe().T)
     return df, summary
 
-# def show_summary(summary:dict):
-#     print("----------------------------------\nsummary\n----------------------------------\n")
-#     num_chains, num_samples, ess_bulk, ess_tail, sampling_time_s, num_warmup = summary.values()
-#     print(f"time to sample from {num_chains} chains with {num_samples} samples each: {sampling_time_s:.4g} s")
-#     print(f"average time per sample: {sampling_time_s/(num_chains*num_samples):.4g}s")
-#     print(f"number of warmup samples per chain: {num_warmup}")
-#     for param_name,  ess_bulk_val in ess_bulk.data_vars.items():
-#         print(f"effective sample size (bulk) for {param_name}: {ess_bulk_val.values:.4g} out of {num_chains * num_samples} samples")
-#         print(f"effective sample size (tails) for {param_name}: {ess_tail.data_vars[param_name].values:.4g} out of {num_chains * num_samples} samples")
-#         print(f"average time per independent sample({param_name}): {sampling_time_s/(num_chains*ess_bulk_val.values):.4g} s")
-#     print("----------------------------------\n----------------------------------\n")
-
-
 def save_samples(samples_dataframe, folder_path, setup:dict = None):
     print("saving samples to: ", folder_path)
     timestamp = t.time()

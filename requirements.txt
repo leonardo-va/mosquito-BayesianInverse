@@ -3,3 +3,4 @@ scipy
 pystan
 matplotlib
 pandas
+seaborn

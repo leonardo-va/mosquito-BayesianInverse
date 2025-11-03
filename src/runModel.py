@@ -74,7 +74,7 @@ def generate_report_plots(mosquitoModel, parameters:dict, initialState:dict, sol
         
         _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                     list(params.values())), 
-                                                    T=40,
+                                                    T=100,
                                                     initialCondition=(0,np.array(list(initialState.values())).reshape(9,-1)),
                                                     stepSize = 0.01,
                                                     method=solverMethod)
@@ -103,7 +103,7 @@ def generate_report_plots(mosquitoModel, parameters:dict, initialState:dict, sol
     figSIR, axesSIR = plt.subplots(2,4,figsize=(15,10))
     _, solutionInterpolant = ODESolver().solve(odeRHS = lambda t,u: mosquitoModel(t,u,
                                                 list(parameters.values())), 
-                                                T=40,
+                                                T=100,
                                                 initialCondition=(0,np.array(list(initialState.values())).reshape(9,-1)),
                                                 stepSize = 0.01,
                                                 method=solverMethod)
@@ -134,6 +134,28 @@ def generate_report_plots(mosquitoModel, parameters:dict, initialState:dict, sol
 
     figSIR.tight_layout()
     figSIR.show()
+    plt.close()
+
+    plt.plot(S_m.grid, S_m.values, label='Susceptible Mosquitoes', color='blue')
+    plt.plot(E_m.grid, E_m.values, label='Exposed Mosquitoes', color='orange')
+    plt.plot(I_m.grid, I_m.values, label='Infectious Mosquitoes',color='red')
+    plt.legend()
+    plt.title("Susceptible, Exposed, Infected Mosquitoes")
+    plt.savefig(os.path.join(save_png_dir, 'SIR_Mosquitoes.png'))
+    plt.show()
+  
+    
+    plt.plot(S_h.grid, S_h.values, label = 'Susceptible Hosts',color='blue')
+    plt.plot(E_h.grid, E_h.values, label = 'Exposed Hosts',color='orange')
+    plt.plot(I_h.grid, I_h.values, label = 'Infectious Hosts',color='red')
+    plt.plot(R_h.grid, R_h.values, label = 'Recovered Hosts',color='green')
+    plt.title("Susceptible, Exposed, Infected, Recovered Hosts")
+    plt.legend()
+    plt.savefig(os.path.join(save_png_dir, 'SIR_Hosts.png'))
+    plt.show()
+  
+    
+    
     if(save_png_dir is not None):
         figSIR.savefig(os.path.join(save_png_dir, 'SIR.png'))
     plt.waitforbuttonpress()
