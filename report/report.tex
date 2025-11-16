@@ -6,6 +6,7 @@
 \documentclass{article}
 %
 \usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{lipsum}
 \usepackage{url}
 \usepackage{hyperref}
@@ -13,6 +14,7 @@
 \usepackage{xcolor}
 \usepackage{multirow}
 \usepackage{amssymb}
+\usepackage{float}
 \usepackage[backend=bibtex,style=numeric]{biblatex}
 
 \graphicspath{{figures/}}
@@ -171,8 +173,9 @@ The parameters we try to infer are highlighted in red:
 
 The model parameters depend on the mosquito species, the specific disease, and the host. 
 Research on the transmission of the West Nile Virus between Culex pipiens 
-(the common house mosquito) and birds (\cite{Heidecke2024.09.16.613097}, and \cite{Vogels2017-li}) found the 
-values given in table \ref{tab:parameters}, for some of the model parameters.
+(the common house mosquito) and birds was conducted in \cite{Heidecke2024.09.16.613097} and \cite{Vogels2017-li}.\cite{Heidecke2024.09.16.613097} investigates the impact of temperature on some
+of the model parameters. They find that a temperature of approximately 27 \textdegree C is optimal for disease transmission. The parameter values at this temperature maximize the basic reproduction number $R_0$. 
+The values for the investigated parameters are given in table \ref{tab:parameters}.
 \begin{table}[h!]
 \centering
 \begin{tabular}{|c|c|c|c|}
@@ -197,7 +200,7 @@ $\alpha_H$ & incubation period $^{-1}$ (hosts) & 0.4 & \cite{Heidecke2024.09.16.
 $\gamma$ & hosts recovery rate & 0.1818 & -\\
 \hline
 \end{tabular}
-\caption{Parameter values for West Nile Virus transmission between Culex pipiens and birds. Rates are in days$^{-1}$}
+\caption{Parameter values for West Nile Virus transmission between Culex pipiens and birds at 27\textdegree C. Rates are in days$^{-1}$}
 \label{tab:parameters}
 \end{table}
 
@@ -205,25 +208,39 @@ These parameter names are also used in the code for this software project.
 
 $\Lambda$ and $\mu_H$ control the total host population, and are unknown. They are chosen together, such that the total host population $S_H + E_H + I_H + R_h$ stays constant. 
 
-The term $-\alpha J^2$ in the second equation models competition between juveniles. The parameter $\alpha$ is unknown. To understand its impact on the mosquito population, and possibly figure out a sensible prior, the ODE system is simulated on the time interval $[0,40]$ (days), with different values for $\alpha$. The other parameters take the values from table \ref{tab:parameters}.
+The term $-\alpha J^2$ in the second equation models competition between juveniles. The parameter $\alpha$ is unknown. To understand its impact on the mosquito population, and possibly figure out a sensible prior, the ODE system is simulated on the time interval $[0,100]$ (days), with different values for $\alpha$. The other parameters take the values from table \ref{tab:parameters}.
 
-\begin{figure}
+
+We can observe in figure \ref{mosquitoPopulation}, that the system goes into a steady state. For values $\alpha \approx 2.5*10^{-6}$ and below, after an initial jump, the populations remain relatively constant over time. 
+For $\alpha = 2*10^{-6}$, the population grows slightly over the initial 100 days, but it seems that $\alpha$ acts mostly as a scaling factor for the steady state. 
+For the choice $\alpha = 2*10^{-6}$ (slightly increasing mosquito population), the individual SEIR compartments for both populations can be seen in figure \ref{fig:sircompartments}.
+Starting from a partially infected mosquito population and a completely susceptible host population, we can observe a wave of infections
+
+\begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{MosquitoPop.png}
-    \caption{Mosquito population over 40 days, for six different values of $\alpha$ together with the parameter values from table \ref{tab:parameters}}
+    \caption{Mosquito population over 100 days, for six different values of $\alpha$ together with the parameter values from table \ref{tab:parameters}}
     \label{mosquitoPopulation}
 \end{figure}
-
-We can observe from figure \ref{mosquitoPopulation}, that for $\alpha \approx 2.5*10^{-6}$, the mosquito population remains stable over time. For larger values, the population goes extinct, and for smaller ones it grows. 
-
-\begin{figure}
+\begin{figure}[H]
     \centering
-    \includegraphics[width=1\linewidth]{SIR.png}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SIR_Mosquitoes.png} % First plot
+        \caption{}
+        \label{fig:plot1}
+    \end{subfigure}%
+    \hspace{0.05\textwidth}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SIR_Hosts.png} % Second plot
+        \caption{}
+        \label{fig:plot2}
+    \end{subfigure}
     \caption{SEIR compartments for hosts and mosquitoes, with $\alpha = 2*10^{-6}$}
-    \label{SIR}
+    \label{fig:sircompartments}
 \end{figure}
 
-For the choice $\alpha = 2*10^{-6}$ (slightly increasing mosquito population), the SEIR compartments can be seen in figure \ref{SIR}. 
 
 \section{Bayesian inference}
 The fourth order Runge-Kutta method is used with a step size of $10^{-3}$ to calculate a solution of the ODE-system on a time interval $[t_0, t_N]$. The model parameters are set to the values given in \ref{tab:parameters}. The initial value at $t_0$ is given by:
@@ -232,11 +249,11 @@ The fourth order Runge-Kutta method is used with a step size of $10^{-3}$ to cal
         "eggs":10000,
         "juveniles":10000,
         "susceptible_m":50000,
-        "exposed_m":10000,
+        "exposed_m":0,
         "infected_m":10000,
         "susceptible_h":10000,
-        "exposed_h":1000,
-        "infected_h":1000,
+        "exposed_h":0,
+        "infected_h":0,
         "recovered_h":0
     }
 \end{verbatim}
