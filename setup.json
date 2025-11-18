@@ -32,39 +32,60 @@
         "eggs": 10000,
         "juveniles": 10000,
         "susceptible_M": 50000,
-        "exposed_M": 10000,
+        "exposed_M": 0,
         "infected_M": 10000,
         "susceptible_H": 10000,
-        "exposed_H": 1000,
-        "infected_H": 1000,
+        "exposed_H": 0,
+        "infected_H": 0,
         "recovered_H": 0
     },
     "time_interval": [
         0,
         100
     ],
-    "number_of_measurements": 300,
+    "number_of_measurements": 30,
     "inferred_parameters": {
         "alpha": {
             "distribution": "normal",
             "parameters": [
-                0.1,
-                0.1
+                0.5,
+                0.5
             ],
             "bounds": [
                 0,
-                0.9
+                1.0
             ]
         },
         "mu_M": {
             "distribution": "normal",
             "parameters": [
-                0.1,
-                0.1
+                0.5,
+                0.5
             ],
             "bounds": [
                 0,
-                0.9
+                1.0
+            ]
+        },  "a": {
+            "distribution": "normal",
+            "parameters": [
+                0.5,
+                0.5
+            ],
+            "bounds": [
+                0,
+                1.0
+            ]
+        },
+          "delta_E": {
+            "distribution": "normal",
+            "parameters": [
+                0.5,
+                0.5
+            ],
+            "bounds": [
+                0,
+                1.0
             ]
         }
     },
@@ -102,5 +123,5 @@
         10000,
         20000
     ],
-    "number_of_samples": 400
+    "number_of_samples": 12000
 }

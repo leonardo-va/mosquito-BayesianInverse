@@ -214,7 +214,8 @@ The term $-\alpha J^2$ in the second equation models competition between juvenil
 We can observe in figure \ref{mosquitoPopulation}, that the system goes into a steady state. For values $\alpha \approx 2.5*10^{-6}$ and below, after an initial jump, the populations remain relatively constant over time. 
 For $\alpha = 2*10^{-6}$, the population grows slightly over the initial 100 days, but it seems that $\alpha$ acts mostly as a scaling factor for the steady state. 
 For the choice $\alpha = 2*10^{-6}$ (slightly increasing mosquito population), the individual SEIR compartments for both populations can be seen in figure \ref{fig:sircompartments}.
-Starting from a partially infected mosquito population and a completely susceptible host population, we can observe a wave of infections
+Starting from a partially infected mosquito population and a completely susceptible host population, we can observe a wave of infections. After this wave the disease dies out, because the host population becomes immune in this model.
+
 
 \begin{figure}[H]
     \centering
@@ -282,27 +283,49 @@ R_H(t)
 \end{bmatrix}\]
 
 Then, from this solution we can generate fake data for Bayesian inference of the parameters. 
-In practice, most of the compartments in the model (for example, the number of infectious mosquitoes) cannot be measured. It is possible to obtain some very noisy measurements of the total number of adult mosquitoes in an area, and to estimate the number of juveniles in water reservoirs.
+In practice, not all of the compartments in the model can be measured. It is possible to obtain some very noisy measurements of the total number of adult mosquitoes in an area, and to estimate the number of juveniles in water reservoirs.
 Because of this, we do not want to use evaluations of $f$ directly as data, but instead restrict ourselves to the mentioned observable quantities.
 
 We select a set of $k$ points in time $r_0,...,r_k$ on the interval $[t_0,t_N]$, and calculate for $0\leq i \leq k$
 \[\text{number adult mosquitoes: }M_i = (f_3+f_4+f_5)(r_i) \approx (S_M + E_M + I_M)(r_i)\]
 \[\text{number of juveniles: } J_i = f_2(r_i) \approx J(r_i)\]
-Gaussian noise is added to both quantities. Since the population sizes in this experiment are in the thousands and tens of thousands, a large standard deviation $\sigma = 15000$ is chosen for the noise.
-Thus, for the data we have the model
-\[y_i \sim \mathcal{N}(\boldsymbol{\begin{bmatrix}
+Gaussian noise is added to both quantities. The population sizes in this experiment are not normalized, and are on the order of thousands and tens of thousands. Thus a large standard deviation of $\sigma_M = 10000$ is chosen for the noise
+in the adult population, and $\sigma_J = 20000$ for the juvenile population. This is approximately 15 \% of the signal. 
+The artificial data (see figure \ref{fig:artificialdata}) is generated according to the following distribution:
+\[y_i \sim \mathcal{N}\left(\boldsymbol{\begin{bmatrix}
 M_i \\
 J_i 
 \end{bmatrix}}, 
 \boldsymbol{\begin{bmatrix}
-\sigma & 0 \\
-0 & \sigma
-\end{bmatrix}}).\]
+\sigma_M & 0 \\
+0 & \sigma_J
+\end{bmatrix}}\right).\]
 
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{data_total_mosquitoes.png} % First plot
+        \caption{}
+        \label{}
+    \end{subfigure}%
+    \hspace{0.05\textwidth}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{data_juveniles.png} % Second plot
+        \caption{}
+        \label{}
+    \end{subfigure}
+    \caption{Artificial data generated for the the total amount of adult mosquitoes and the number of juveniles, with gaussian noise.}
+    \label{fig:artificialdata}
+\end{figure}
 
-Next, the goal is to infer the parameters for juvenile competition and mosquito death rate 
-\[\theta:=\begin{bmatrix}\alpha \\ \mu_M\end{bmatrix}\] 
-from that data. The other parameters in \ref{tab:parameters} are assumed to be known, with the values given there. 
+Next, the goal is to infer a subset of unknown parameters $\theta_u$ from this data. The other parameters in \ref{tab:parameters} are assumed to be known, with the values given there. 
+Two different sets of unknowns are considered in two experiments:
+\[\theta_{u_1}:=\begin{bmatrix}\alpha \\ \mu_M\end{bmatrix}\] 
+\[\theta_{u_2}:=\begin{bmatrix}\alpha \\ \mu_M \\ a \\ \delta_E\end{bmatrix}\]
+The first set contains two parameters, the juvenile competition and the mosquito mortality rate. In the second set, the biting rate $a$ and the egg-to-juvenile rate $delta_E$ are added.
+
 Bayes rule yields the posterior density of $\theta$ given the data $y$:
 \[\pi_{\theta|Y}(\theta|y) = \frac{\pi_{Y|\theta}(y|\theta)\pi_{\theta}(\theta)}{\pi_{Y}(y)}\]
 Here, $\pi_{Y|\theta}(y|\theta)$ is the likelihood of the data given a parameter $\theta$, and $\pi_{\theta}(\theta)$ is the prior distribution.
@@ -315,41 +338,115 @@ The Stan software package \cite{Stan} implements No-U-Turn, and is chosen for th
 
 The sampler needs the following input:
 \begin{enumerate}
-\item A parameter-to-observable map. Here, this is the map $\begin{bmatrix} \alpha \\ \mu_M\end{bmatrix}\rightarrow \ \begin{bmatrix}M\\J\end{bmatrix}$, which includes the ODE and the solver, as described above.
-\item A prior distribution for the parameters. For $\alpha$, we choose a lognormal prior with mean $2*10^{-6}$. This choice is made based on the population development seen in $\ref{mosquitoPopulation}$. For $\mu_M$, the normal distribution $\mathcal{N}(0.1,0.1)$. 
-\item The observed data $y_i$, $0 \leq i \leq k$ and the noise model.
+\item A parameter-to-observable map. Here, this is the map $\theta_u\rightarrow \ \begin{bmatrix}M\\J\end{bmatrix}$, which includes the ODE and the solver, as described above.
+\item A prior distribution for the parameters. $\mathcal{N}(0.5,0.5)$ is used for every unknown parameter.
+\item The observed data $y_i$ and its likelihood $p(y_i|\theta_u)$, , $0 \leq i \leq k$.
 \end{enumerate}
-
-It outputs samples for $\alpha$ and $\mu_M$ and some summary statistics, as well as some information about the sampling process, like acceptance probabilities for each sample. The output can be converted to a pandas data-frame, and stored in a csv file.
+It outputs samples for the unknowns $\theta_u$ distributed according to the posterior, and some summary statistics, as well as some information about the sampling process, like acceptance probabilities for each sample. The output can be converted to a pandas data-frame, and stored in a csv file.
 
 \subsection{Results}
-The experiment is conducted as described above. We choose the number of measurements $k=200$ for the artificial data. With a time interval $[t_0,t_N]=[0,20]$, this would in practice mean ten measurements of M and J daily, which might be reasonable. Then, 2000 parameter pairs $\begin{bmatrix}\alpha \\ \mu_M\end{bmatrix}$ are sampled with the No-U-Turns method. The histograms of these samples are visualized in figure \ref{fig:samples_hist}. 
-
+The experiment is conducted as described above. We choose the number of measurements $k=30$. For the time interval $[t_0,t_N]=[0,100]$, this would in practice mean approximately two measurements of M and J weekly. Then, 8000 samples of $\theta_u$ are generated with the No-U-Turns method. 
+A kernel density estimate of the posterior of $\theta_{u_1}=\begin{bmatrix}\alpha \\ \mu_M\end{bmatrix}$ and $\theta_{u_2}=\begin{bmatrix}\alpha \\ \mu_M \\ a \\ \delta_E\end{bmatrix}$ are visualized in figure \ref{fig:posterior_2_param} figure \ref{fig:posterior_4_param} respectively. 
 \begin{figure}
     \hspace*{-3cm}
-    \includegraphics[width=1.4\textwidth, height=0.8\textwidth]{samples_1760543509.4396787_evaluation.png}
-    \caption{Histogram of samples for the posteriors of $\alpha$ and $\mu_M$. The green lines are the true values used for generating the artificial data, the red lines are the posterior means.}
-    \label{fig:samples_hist}
+    \includegraphics[width=1.4\textwidth, height=0.8\textwidth]{posterior_2.png}
+    \caption{Kernel density estimate for the posteriors of $\alpha$ and $\mu_M$, calculated from samples of $\theta_{u_1}$. The green lines are the true values used for generating the artificial data, the red lines are the posterior means, and the blue ones are the map points.}
+    \label{fig:posterior_2_param}
+\end{figure}
+\begin{figure}
+    \hspace*{-3cm}
+    \includegraphics[width=1.4\textwidth, height=0.8\textwidth]{posteriors_4.png}
+    \caption{Kernel density estimate for the posteriors of $\alpha$, $\mu_M$, a, and $\delta_E$, calculated from samples of $\theta_{u_2}$. The green lines are the true values used for generating the artificial data, the red lines are the posterior means, and the blue ones are the map points.}
+    \label{fig:posterior_4_param}
 \end{figure}
 
-The green lines show the true parameters used to generate the artificial data. The priors were centered around those. We can see that the posteriors are very peaked around their mean, with a small variance. The priors look very different from these distributions, thus we can conclude that the measured data is informative and has a large impact on the posterior.
+The green lines show the true parameters used to generate the artificial data. We can observe that, with the exception of the parameter a, the posteriors are concentrated around the true values.
+The priors were relatively flat compared to these distributions, thus it can be concluded that the measured data is informative and has a large impact on the posteriors.
+For the biting rate a this is not the case. That is expected, since the measured quantities are the total adult and juvenile mosquito populations, which are unrelated to a. The biting rate only influences
+the dynamics between the susceptible and exposed compartments, which are not measured individually. 
 
-We choose the mean of the posteriors $\hat\alpha \approx 9.8 * 10^{-6}$ and $\hat\mu_M \approx 0.042$ and simulate the disease model once more, now with these inferred values. The other model parameters keep their values from table \ref{tab:parameters}. The resulting mosquito population $M$ and juvenile population $J$ over time are visualized in figures \ref{fig:M_prediction} and \ref{fig:J_prediction}. The green line is the artificial data, and the red line is the new simulation based on the estimated parameters. The sampler does not recover the correct parameter pair, but the long-term trend of the populations matches very well.
-\begin{figure}
+
+We use the mean and map of the posteriors of $\theta_{u_1}$ and $\theta_{u_2}$ and simulate the disease model once more, now with these inferred values. The other model parameters keep their values from table \ref{tab:parameters}.
+The mean and map estimates are:
+\[\text{mean:   } \hat{\theta}_{u_1} = \begin{bmatrix}1.974\text{e-}6 \\ 0.0996\end{bmatrix}\quad\text{map: }\hat{\theta}_{u_1} = \begin{bmatrix}1.94\text{e-}6 \\ 0.0995\end{bmatrix}\]
+\[\text{mean:   } \hat{\theta}_{u_2} = \begin{bmatrix}2.297\text{e-}6 \\ 0.0984 \\ 0.4936 \\ 0.6929\end{bmatrix}\quad\text{map: }\hat{\theta}_{u_2} = \begin{bmatrix}2.384\text{e-}6 \\ 0.0979 \\ 0.4765 \\ 0.6718\end{bmatrix}\]
+The resulting mosquito population $M$ and juvenile population $J$ over time are visualized in figures \ref{fig:predictions_2} and \ref{fig:predictions_4}. 
+The green line is the artificial data, and the red line is the new simulation with the mean/map estimators. 
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=1\textwidth, height=0.8\textwidth]{adult_mean_pred.png}
+%     \caption{Total mosquito population over 20 days. Green is the artificial data, red is the simulation based on the inferred parameters.}
+%     \label{fig:M_prediction}
+% \end{figure}
+
+% \begin{figure}
+% \centering
+%     \includegraphics[width=1\textwidth, height=0.8\textwidth]{juvenile_mean_pred.png}
+%     \caption{Juvenile mosquito population over 20 days. Green is the artificial data, red is the simulation based on the inferred parameters.}
+%     \label{fig:J_prediction}
+% \end{figure}
+
+\begin{figure}[]
     \centering
-    \includegraphics[width=1\textwidth, height=0.8\textwidth]{adult_mean_pred.png}
-    \caption{Total mosquito population over 20 days. Green is the artificial data, red is the simulation based on the inferred parameters.}
-    \label{fig:M_prediction}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{adult_mean_pred.png} % First plot
+        \caption{}
+        \label{}
+    \end{subfigure}%
+    \hspace{0.05\textwidth}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{juvenile_mean_pred.png} % Second plot
+        \caption{}
+        \label{}
+    \end{subfigure}
+     \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{adult_map_pred.png} % Second plot
+        \caption{}
+        \label{}
+    \end{subfigure}
+     \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{juveniles_map_pred.png} % Second plot
+        \caption{}
+        \label{}
+    \end{subfigure}
+    \caption{Prediction of adult and juvenile populations, using the mean and map estimators for $\theta_{u_1}$.}
+    \label{fig:predictions_2}
 \end{figure}
 
-\begin{figure}
-\centering
-    \includegraphics[width=1\textwidth, height=0.8\textwidth]{juvenile_mean_pred.png}
-    \caption{Juvenile mosquito population over 20 days. Green is the artificial data, red is the simulation based on the inferred parameters.}
-    \label{fig:J_prediction}
+\begin{figure}[]
+    \centering
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{adult_prediction_mean_4.png} % First plot
+        \caption{}
+        \label{}
+    \end{subfigure}%
+    \hspace{0.05\textwidth}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{juv_prediction_mean_4.png} % Second plot
+        \caption{}
+        \label{}
+    \end{subfigure}
+     \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{adult_prediction_map_4.png} % Second plot
+        \caption{}
+        \label{}
+    \end{subfigure}
+     \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{juv_prediction_map_4.png} % Second plot
+        \caption{}
+        \label{}
+    \end{subfigure}
+    \caption{Prediction of adult and juvenile populations, using the mean and map estimators for $\theta_{u_2}$.}
+    \label{fig:predictions_4}
 \end{figure}
-
-
 
 
 \section{User Interface}
