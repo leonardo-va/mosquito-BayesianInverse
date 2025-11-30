@@ -4,3 +4,4 @@ pystan
 matplotlib
 pandas
 seaborn
+arviz
