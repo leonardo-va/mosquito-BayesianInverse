@@ -7,7 +7,7 @@
         "delta_J": 0.09,
         "p_J": 0.75,
         "omega": 0.5,
-        "mu_M": 0.1,
+        "lf_M": 0.067,
         "a": 0.2,
         "b_M": 0.9,
         "alpha_M": 0.0333,
@@ -20,9 +20,9 @@
     "ode_rhs": [
         "beta*(u[3]+u[4]+u[5]) - delta_E * u[1] - (delta_E/p_E - delta_E) * u[1]",
         "delta_E * u[1] - delta_J * u[2] -alpha*u[2]^2 - (delta_J/p_J - delta_J) * u[2]",
-        "omega*delta_J * u[2] - a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - mu_M*u[3]",
-        "a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - alpha_M*u[4] - mu_M*u[4]",
-        "alpha_M*u[4] - mu_M*u[5]",
+        "omega*delta_J * u[2] - a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - 1/(lf_M*150)*u[3]",
+        "a*b_M*u[3]*u[8]/(u[6]+u[7]+u[8]+u[9]) - alpha_M*u[4] - 1/(lf_M*150)*u[4]",
+        "alpha_M*u[4] - 1/(lf_M*150)*u[5]",
         "Lambda - a*b_H*u[6]*u[5]/(u[3]+u[4]+u[5]) - mu_H*u[6]",
         "a*b_H*u[6]*u[5]/(u[3]+u[4]+u[5]) - alpha_H*u[7] - mu_H*u[7]",
         "alpha_H*u[7] - gamma_H*u[8] - mu_H*u[8]",
@@ -56,7 +56,7 @@
                 1.0
             ]
         },
-        "mu_M": {
+        "lf_M": {
             "distribution": "normal",
             "parameters": [
                 0.5,
