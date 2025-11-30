@@ -2,7 +2,7 @@
 from odeSolver import ODESolver
 import numpy as np
 import os
-import visualization
+# import visualization
 from matplotlib import pyplot as plt
 import quantityOfInterest
 from collections import namedtuple
@@ -18,6 +18,14 @@ def generate_data_from_setup(model_equations, setup:dict):
     solverMethod = "RK4"
     observables = setup["state_to_observable"]
     quantitiesOfInterest = []
+    # print(parameters)
+    # printstr = f""
+    # for par_func in list(parameters.values()):
+    #     timepoints = np.linspace(0,100,10)
+    #     printstr += "\n"
+    #     for tp in timepoints:
+    #         printstr += f"\t {tp}, {par_func(tp)}"
+    # print(printstr)
     qoi_names = []
     for observable in setup["state_to_observable"]:
         linearCoefficients = observable["linear_combination"].copy()

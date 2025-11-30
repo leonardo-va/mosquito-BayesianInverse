@@ -1,15 +1,17 @@
 import json
 import argparse
+import inspect
 import os
-from jsonToModelCode import generate_py_model_function, generate_stan_ode_code, validate_setup
+from jsonToModelCode import validate_setup, generate_py_model_function
 import numpy as np
 from matplotlib import pyplot as plt
+import smoothing
 import runModel
-import runSampler
+from functools import wraps
 import quantityOfInterest
-import sampleEvaluation
+# import runSampler
+# import sampleEvaluation
 import visualization
-
 
 def _get_root_dir():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,58 +23,34 @@ def _get_setup_path():
     default_setup_path = os.path.join(root_dir, "setup.json")
     return default_setup_path
 
-class cubic_smoothed_function:
-    original_function = None
-    original_function_derivative = None
-    smoothed_function = None
-    smooth_intervals = [[0,0]]
-    cubic_polys = []
+def add_temperature_dependence(func, parameters_temp_dependent):
+    sig = inspect.signature(func)
+    @wraps(func)
+    def func_temp_dependent(*args, **kwargs):
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        if 'parameters' and 't' in bound_args.arguments:
+            current_t = bound_args.arguments['t']
+            bound_args.arguments['parameters'] = [temp_func(current_t) for _,temp_func in parameters_temp_dependent.items()]
+        if 'setup' in bound_args.arguments:
+            bound_args.arguments['setup']['parameters'] = parameters_temp_dependent
+        return func(*bound_args.args, **bound_args.kwargs)
+    return func_temp_dependent
 
+def constant_function(val):
+    return lambda t: val
 
-    def __init__(self, function, derivative, intervals:list[list]):
-        self.original_function = function
-        self.original_function_derivative = derivative
-        self.smooth_intervals = intervals
-        self._validate_input()
+def briere_func(T, q, c, Tmin, Tmax):
+    '''
+    parameters to fit: q, Tmin, Tmax
+    c is a scaling factor such that q/c is on the same scale as tmin and tmax
+    T is the argument (temperature)
+    '''
+    if((T>np.max([0,Tmin])) and (T <Tmax)):
+        retval = q/c*T*(T-Tmin)*np.sqrt(Tmax-T)
+    else: retval = 0
+    return 10*retval
 
-        for interval in self.smooth_intervals:
-            lhs_tuple  = self._eval_conditions(interval)
-            print(f"lhs tuple (f_0,f_1,f_prime_0,f_prime_1): {lhs_tuple}")
-            cubic_poly = fit_cubic_poly(*lhs_tuple, interval[0], interval[1])
-            self.cubic_polys.append(cubic_poly)
-        self.smoothed_function = self._assemble_function()
-
-    def _validate_input(self):
-        for interval in self.smooth_intervals:
-            assert(interval[0]<interval[1])
-    
-    def _test_result(self):
-        for idx, interval in enumerate(self.smooth_intervals):
-            print(f"interval {idx}: [{interval[0]},{interval[1]}]", flush=True)
-            print(f"x_0: {interval[0]} , f(x_0): {self.original_function(interval[0])}, poly(x_0): {self.cubic_polys[idx](interval[0])}",flush=True)
-            print(f"x_1: {interval[1]} , f(x_1): {self.original_function(interval[1])}, poly(x_1): {self.cubic_polys[idx](interval[1])}",flush=True)
-            # self.original_function(interval[1])
-
-    def _eval_conditions(self,interval):
-        f_0 = self.original_function(interval[0])
-        f_1 = self.original_function(interval[1])
-        f_prime_0 = self.original_function_derivative(interval[0])
-        f_prime_1 = self.original_function_derivative(interval[1])
-        return (f_0,f_1,f_prime_0,f_prime_1)
-    
-    def _assemble_function(self):
-        def smooth_function(x):
-            retval = None
-            for idx,interval in enumerate(self.smooth_intervals):
-                if(x>=interval[0] and x<= interval[1]):
-                    retval = self.cubic_polys[idx](x)
-            if(retval is None):
-                retval = self.original_function(x)
-            return retval
-        return smooth_function
-    
-    def get_smoothed_function(self):
-        return self.smoothed_function
 
 def temperature_profile(time:float):
     time_15_0 = np.arcsin(1/2)*100/np.pi
@@ -86,7 +64,7 @@ def biting_rate_raw(temperature):
     c_scaling = 43000
     T_min_fit = 1.93
     T_max_fit = 45.1
-    if((temperature>max(0,T_min_fit)) and (temperature <T_max_fit)):
+    if((temperature>np.max([0,T_min_fit])) and (temperature <T_max_fit)):
         retval = q_fit/c_scaling*temperature*(temperature-T_min_fit)*np.sqrt(T_max_fit-temperature)
     else: retval = 0
     return retval
@@ -103,26 +81,8 @@ def biting_rate_derivative(temperature):
         retval = 0
     return retval
 
-def cubic_polynomial(x, cubic_coeffs):
-    return (np.array([x**3, x**2, x, 1]).dot(cubic_coeffs)).item()
-
-def fit_cubic_poly(f_0, f_prime_0, f_1, f_prime_1, x_0, x_1):
-    lhs = np.array([f_0,f_1,f_prime_0,f_prime_1]).reshape((4,1))
-    lgs_mat = np.array([[x_0**3, x_0**2, x_0, 1],
-                        [x_1**3, x_1**2, x_1, 1],
-                        [3*x_0**2,2*x_0, 1, 0],
-                        [3*x_1**2,2*x_1, 1, 0]])
-    print(lgs_mat, "lgs")
-    print(np.linalg.inv(lgs_mat), "lgs_inv")
-    cubic_coeffs = np.linalg.inv(lgs_mat) @ lhs
-    return lambda x: cubic_polynomial(x, cubic_coeffs)
-
-
-
-
 def main():
     # take the path to setup.json as a commandline argument, also give setup.json in the parent directory as default argument
-    
     setup_path_default_arg = _get_setup_path()
     parser = argparse.ArgumentParser()
     parser.add_argument("--setup", default = setup_path_default_arg, type=str, help="Path to the setup.json file")
@@ -138,45 +98,47 @@ def main():
     # generate the model function, parameters, and stan code from the setup
     generated_stan_code_file = os.path.join(_get_root_dir(), "stan_code.txt")
     generated_py_function_file = os.path.join(_get_root_dir(), "py_model_function.txt")
-    # print(temperature_profile(np.arcsin(1/2)*100/np.pi))
-    # print(temperature_profile((np.pi - np.arcsin(1/2))*100/np.pi))
+ 
     times = np.linspace(0,100,500)
-    temps = np.array([temperature_profile(t) for t in times])
-    # plt.plot(times,temps)
-    # plt.show()
-    biting_params = np.array([biting_rate_raw(temperature_profile(t)) for t in times])
-    smoothing = cubic_smoothed_function(biting_rate_raw, biting_rate_derivative, [[-5,5],[40,50]])
-    smoothing._test_result()
-    biting_rate_smooth = smoothing.get_smoothed_function()
-    print(times)
-    print(biting_rate_smooth(44.89795918))
-    biting_params_smooth = [biting_rate_smooth(t) for t in times]
-    print(biting_params_smooth)
+    # temps = np.array([temperature_profile(t) for t in times])
+    # # plt.plot(times,temps)
+    # # plt.show()
+    cubicSmoothing = smoothing.CubicSmoothing(biting_rate_raw, biting_rate_derivative, [[-5,5],[40,50]])
+    cubicSmoothing.test_result()
+    biting_rate_smooth = cubicSmoothing.get_smoothed_function()
+    biting_params_smooth = [biting_rate_smooth(temperature_profile(t)) for t in times]
     plt.plot(times,biting_params_smooth)
     plt.show()
-
-    # mosquito_model = generate_py_model_function(setup, generated_py_function_file)
+    for pname, param_val in setup['parameters'].items():
+        print(pname, param_val)
+    params_temp_dependent = {pname:constant_function(param_val) for pname, param_val in setup['parameters'].items()}
+    # test biting rate
+    params_temp_dependent['a'] = lambda t: biting_rate_smooth(temperature_profile(t))
+    print(params_temp_dependent['delta_E'](1), params_temp_dependent['beta'](1))
+    # print(params_temp_dependent['a'](20))
+    mosquito_model = generate_py_model_function(setup, generated_py_function_file)
+    mosquito_model = add_temperature_dependence(mosquito_model, params_temp_dependent)
+    generate_data_from_setup = add_temperature_dependence(runModel.generate_data_from_setup, params_temp_dependent)
     # stan_code = generate_stan_ode_code(setup, generated_stan_code_file)
     # parameters = setup['parameters']
-    # initial_state = setup['initial_state']
-    # noise = setup['observable_standard_deviation']
+    initial_state = setup['initial_state']
+    noise = setup['observable_standard_deviation']
 
     # # generateDefaultSetup(os.path.join(_get_root_dir(), "defaultsetup.json"))
-    
     # try:
     #     runModel.generate_report_plots(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
     #     pass
     # except:
     #     print("generating plots failed, continuing with data generation and sampling")
 
-    # # generate data for the sampler
-    # observables = []
-    # for observable in setup["state_to_observable"]:
-    #     linearCoefficients = observable["linear_combination"]
-    #     observables.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
-    # data = runModel.generate_data_from_setup(mosquito_model,setup)
-    # qoi_names = [observable['name'] for observable in setup['state_to_observable']]
-    # visualization.visualize_artificial_data(data, qoi_names)
+    # generate data for the sampler
+    observables = []
+    for observable in setup["state_to_observable"]:
+        linearCoefficients = observable["linear_combination"]
+        observables.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
+    data = generate_data_from_setup(mosquito_model,setup)
+    qoi_names = [observable['name'] for observable in setup['state_to_observable']]
+    visualization.visualize_artificial_data(data, qoi_names)
     
     # # build and run the sampler 
     # samples_dataframe, summary = runSampler.sample(stan_code = stan_code, data = data.noisyData, num_samples = setup["number_of_samples"])
