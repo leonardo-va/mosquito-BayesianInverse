@@ -13,6 +13,26 @@ def fit_cubic_poly(f_0, f_1, f_prime_0, f_prime_1, x_0, x_1):
     cubic_coeffs = np.linalg.inv(lgs_mat) @ lhs
     return lambda x: cubic_polynomial(x, cubic_coeffs)
 
+def estimate_smoothing_intervals(discontinuity_list):
+    discontinuity_list = sorted(list(set(discontinuity_list)))
+    # discontinuity_list.insert(0, discontinuity_list[0]-10)
+    # discontinuity_list.append(discontinuity_list[-1]+10)
+    if(len(discontinuity_list) == 1):
+        diffs_next = [np.abs(discontinuity_list[0]+1)]
+        diffs_prev = [np.abs(discontinuity_list[0]-1)]
+        # return [[discontinuity_list[0]-1, discontinuity_list[0]+1]]
+    else:
+        diffs_next = [abs(discontinuity_list[ii+1]-discontinuity_list[ii]) for ii in np.arange(len(discontinuity_list))[:-1]]
+        diffs_next.append(1)
+        diffs_prev = diffs_next.copy()
+        diffs_prev.insert(0,1)
+    smoothing_intervals = []
+    for idx, disc_position in enumerate(discontinuity_list):
+        replace_interval = [disc_position - 0.1*diffs_prev[idx], disc_position + 0.1*diffs_next[idx]]
+        smoothing_intervals.append(replace_interval)
+    return smoothing_intervals
+
+
 class CubicSmoothing:
     original_function = None
     original_function_derivative = None
@@ -95,6 +115,9 @@ def main():
     plt.plot(xs, ys_smoothed)
     plt.plot(xs, ys)
     plt.show()
+    print("testing interval estimation:\n",flush=True)
+    print([1,5,8,9,12,4,8], "\n",flush=True)
+    print(estimate_smoothing_intervals([1,5,8,9,12,4]))
 
-if(__name__ == "main"):
+if(__name__ == "__main__"):
     main()
