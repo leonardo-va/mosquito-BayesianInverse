@@ -18,15 +18,12 @@ def generate_data_from_setup(model_equations, setup:dict):
     solverMethod = "RK4"
     observables = setup["state_to_observable"]
     quantitiesOfInterest = []
-    # print(parameters)
-    # printstr = f""
-    # for par_func in list(parameters.values()):
-    #     timepoints = np.linspace(0,100,10)
-    #     printstr += "\n"
-    #     for tp in timepoints:
-    #         printstr += f"\t {tp}, {par_func(tp)}"
-    # print(printstr)
+
+    parameter_vector = []
+    for entry in parameters.values():
+        parameter_vector+=entry
     qoi_names = []
+  
     for observable in setup["state_to_observable"]:
         linearCoefficients = observable["linear_combination"].copy()
         qoi_names.append(observable["name"])
@@ -34,11 +31,16 @@ def generate_data_from_setup(model_equations, setup:dict):
 
     initial = (timeInterval[0], list(initialState.values()))
     solver = ODESolver()
-    _, interpolantMosquito = solver.solve(lambda t,u: model_equations(t,u,list(parameters.values())), 
+    _, interpolantMosquito = solver.solve(lambda t,u: model_equations(t,u,parameter_vector), 
                                           timeInterval[1], 
                                           initial, 
-                                          0.01, 
-                                          solverMethod)
+                                          stepSize = 0.01, 
+                                          method=solverMethod)
+    # _, interpolantMosquito = solver.solve(lambda t,u: model_equations(t,u,list(parameters.values())), 
+    #                                     timeInterval[1], 
+    #                                     initial, 
+    #                                     0.01, 
+    #                                     solverMethod)
 
     ts = np.linspace(timeInterval[0], timeInterval[1], numberObservations)
     combinedQoi = quantityOfInterest.linearCombinationQOI(interpolantMosquito, observables[0]["linear_combination"])
@@ -53,10 +55,10 @@ def generate_data_from_setup(model_equations, setup:dict):
     noisy_data[noisy_data<0] = 0
        
     ode_Data = {
-        "N": numberObservations-1,
-        "y": noisy_data[1:,:].tolist(),
+        "N": numberObservations,
+        "y": noisy_data.tolist(),
         "t0": ts[0],
-        "ts": ts[1:]
+        "ts": ts
         }
     groundtruth = {
         "N": numberObservations,
@@ -65,6 +67,23 @@ def generate_data_from_setup(model_equations, setup:dict):
         "ts": ts
     }
     return ArtificialData(ode_Data, groundtruth, noise)
+
+
+def generate_mock_data(setup:dict):
+    n_observables = len(setup['state_to_observable'])
+    n_measurements = setup['number_of_measurements']
+    timeInterval = setup['time_interval']
+    t0 = timeInterval[0]
+    ts = np.linspace(timeInterval[0], timeInterval[1], n_measurements)
+
+    y_list = [[0]*n_observables]*n_measurements
+    noisy_data = {"N":n_measurements-1,
+                  "y":y_list,
+                  "t0":t0,
+                  "ts":ts}
+    truth = None
+    deviations = setup['observable_standard_deviation']
+    return ArtificialData(noisy_data,truth,deviations)
 
 def generate_report_plots(mosquitoModel, parameters:dict, initialState:dict, solverMethod = 'RK4', save_png_dir = None):
     

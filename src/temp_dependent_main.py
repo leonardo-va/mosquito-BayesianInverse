@@ -7,6 +7,12 @@ import quantityOfInterest
 import runModel
 import visualization
 import temp_dependent_stan_code
+import py_model_creator
+import pymc as pm
+import pytensor.tensor as pt
+import pytensor.printing as ptp
+import numpy as np
+import pytensor
 
 def _get_root_dir():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,6 +23,12 @@ def _get_setup_path():
     root_dir = _get_root_dir()
     default_setup_path = os.path.join(root_dir, "setup.json")
     return default_setup_path
+
+def make_func_param_dict(temp_dependent_param_list:list[tdp.tempDependentParameter]):
+    fct_param_dict = {}
+    for param in temp_dependent_param_list:
+        fct_param_dict[param.name] = param.get_function_parameters()
+    return fct_param_dict
 
 def main():
     # take the path to setup.json as a commandline argument, also give setup.json in the parent directory as default argument
@@ -31,47 +43,99 @@ def main():
     if validate_setup(setup) == False:
         print("setup is not valid")
         return None
-    
-    # generate the model function, parameters, and stan code from the setup
-    generated_stan_code_file = os.path.join(_get_root_dir(), "stan_code.txt")
-    generated_py_function_file = os.path.join(_get_root_dir(), "py_model_function.txt")
  
-  
-    params_temp_dependent_objs = tdp.make_gt_temp_dependent_parameters(setup)
-    param_metas = [param.meta for param in params_temp_dependent_objs.values()]
-    params_temp_dependent = {}
-    for obj in params_temp_dependent_objs.values():
-        # obj.visualize(time_dependent = True)
-        f_concatenated = tdp.inject_temperature_profile(obj.func)
-        params_temp_dependent[obj.name] = f_concatenated
- 
-    mosquito_model = generate_py_model_function(setup, generated_py_function_file)
-    mosquito_model = tdp.add_temperature_dependence(mosquito_model, params_temp_dependent)
-    generate_data_from_setup = tdp.add_temperature_dependence(runModel.generate_data_from_setup, params_temp_dependent)
-    print(temp_dependent_stan_code.assemble_function_block(setup, param_metas))
-    print(temp_dependent_stan_code.assemble_data_block(setup, param_metas))
-    print(temp_dependent_stan_code.assemble_parameter_block(setup, param_metas))
+    print("Creating ODE-model")
+    params_temp_dependent, params_temp_dependent_pt = tdp.make_gt_temp_dependent_parameters(setup)
+    model_creator = py_model_creator.PyModelCreator(list(params_temp_dependent.values()), tdp.temperature_profile)
+    model_creator_pt = py_model_creator.PyModelCreator(list(params_temp_dependent_pt.values()), tdp.temperature_profile_pt)
+    mosquito_model = model_creator.get_model_function()
+    mosquito_model_pt = model_creator_pt.get_model_function(pytensor_version=True)
+    # print(temp_dependent_stan_code.assemble_function_block(setup, param_metas))
+    # print(temp_dependent_stan_code.assemble_data_block(setup, param_metas))
+    # print(temp_dependent_stan_code.assemble_parameter_block(setup, param_metas))
     # stan_code = generate_stan_ode_code(setup, generated_stan_code_file)
-    # parameters = setup['parameters']
-    initial_state = setup['initial_state']
-    noise = setup['observable_standard_deviation']
 
-    # # generateDefaultSetup(os.path.join(_get_root_dir(), "defaultsetup.json"))
-    # try:
-    #     runModel.generate_report_plots(mosquito_model, parameters, initial_state, 'RK4', save_png_dir = _get_root_dir())
-    #     pass
-    # except:
-    #     print("generating plots failed, continuing with data generation and sampling")
+    initial_state = setup['initial_state']
+    sigma_obs_list = setup['observable_standard_deviation']
 
     # generate data for the sampler
+    print("Generating artificial data")
     observables = []
+    qoi_names = []
+    qoi_mat_cols = []
     for observable in setup["state_to_observable"]:
         linearCoefficients = observable["linear_combination"]
+        qoi_mat_cols.append(linearCoefficients)
+        qoi_names.append(observable['name'])
         observables.append(lambda interpolant: quantityOfInterest.linearCombinationQOI(interpolant, linearCoefficients))
-    data = generate_data_from_setup(mosquito_model,setup)
-    qoi_names = [observable['name'] for observable in setup['state_to_observable']]
+    qoi_mat = np.array(qoi_mat_cols).T
+    qoi_pt_matrix = pt.constant(qoi_mat)
+    setup['parameters'] = make_func_param_dict(params_temp_dependent.values())
+    # data = runModel.generate_mock_data(setup)
+    data = runModel.generate_data_from_setup(mosquito_model,setup)
     visualization.visualize_artificial_data(data, qoi_names)
+    print(data.noisyData)
+    print("Building pymc ode")
+
+    theta_li=[]
+    for param in params_temp_dependent.values():
+        theta_li.append(param.get_function_parameters())
+    print(theta_li)
+    # theta_ve = pt.concatenate([pt.reshape(x, (-1,)) for x in theta_li])
+    # ode_solution = ode_model(y0=pt.as_tensor_variable(list(initial_state.values())), theta=theta_ve)
+    print("Building pymc model")
+    def pt_debugger(item, msg = "DEBUGMSG"):
+        debug = ptp.Print(msg)(item)
+        f = pytensor.function([], debug)
+        f()   
+    obs_noise = setup['observable_standard_deviation']
+    print("---------------------------")
     
+    with pm.Model() as model:
+        # Priors for parameters
+        priors = {}
+        theta_list = []
+        # for inferred_param in setup['inferred_parameters']:
+        #     param_len = params_temp_dependent[inferred_param].get_function_parameter_length()
+        #     mu = pt.constant(params_temp_dependent[inferred_param].get_function_parameters()) 
+        #     if(inferred_param == "alpha"):
+        #         cov = pt.ones(param_len)*0.001
+        #     else:                    
+        #         cov = pt.ones(param_len) * 1.0               
+        #     priors[inferred_param] = pm.Normal(inferred_param,mu, cov,shape=param_len)
+        mu = [3,3,50]
+        sigma = [1,1,5]
+        priors = {"delta_E": pm.Normal("delta_E", mu=mu, sigma = sigma, size=len(mu))}
+
+
+        ode_model = pm.ode.DifferentialEquation(
+            func=mosquito_model_pt,
+            times=data.noisyData['ts'],
+            n_states=len(initial_state),
+            n_theta=model_creator.get_parameter_length(),
+            t0=data.noisyData['t0'])
+        for param in params_temp_dependent.values():
+            if param.name =="delta_E":
+                theta_list.append(priors[param.name])
+            else:
+                theta_list.append(pt.constant(param.get_function_parameters()))
+     
+        theta_vector = pt.concatenate([pt.reshape(x, (-1,)) for x in theta_list])
+        # single_eval = mosquito_model_pt(pt.as_tensor_variable(list(initial_state.values())),1,theta_vector)
+
+        # ODE solution at observation times
+        ode_solution = ode_model(y0=pt.as_tensor_variable(list(initial_state.values())), theta=theta_vector)
+        ode_solution_transformed = ode_solution @ qoi_pt_matrix
+        pt_debugger(ode_solution_transformed)
+        #Likelihood
+        for i in range(len(observables)):
+            pm.Normal(
+                f"y_hat_{i}",
+                mu=ode_solution_transformed[:, i],
+                sigma=obs_noise[i],
+                observed=np.array(data.noisyData['y'])[:, i]
+            )
+        trace = pm.sample(1000, tune=1000, cores=2, step=pm.Metropolis())
     # # build and run the sampler 
     # samples_dataframe, summary = runSampler.sample(stan_code = stan_code, data = data.noisyData, num_samples = setup["number_of_samples"])
 

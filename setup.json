@@ -1,21 +1,21 @@
 {
     "parameters": {
-        "delta_E": 0.6,
-        "p_E": 0.875,
-        "beta": 3,
-        "alpha": 2e-03,
-        "delta_J": 0.09,
-        "p_J": 0.75,
-        "omega": 0.5,
-        "lf_M": 0.067,
-        "a": 0.2,
-        "b_M": 0.9,
-        "EIP_M": 30,
-        "Lambda": 12,
-        "b_H": 0.8,
-        "mu_H": 0.001,
-        "alpha_H": 0.4,
-        "gamma_H": 0.1818
+        "delta_E": [0.6],
+        "p_E": [0.875],
+        "beta": [3],
+        "alpha": [2e-03],
+        "delta_J": [0.09],
+        "p_J": [0.75],
+        "omega": [0.5],
+        "lf_M": [0.067],
+        "a": [0.2],
+        "b_M": [0.9],
+        "EIP_M": [30],
+        "Lambda": [12],
+        "b_H": [0.8],
+        "mu_H": [0.001],
+        "alpha_H": [0.4],
+        "gamma_H": [0.1818]
     },
     "ode_rhs": [
         "beta*(u[3]+u[4]+u[5]) - delta_E * u[1] - (delta_E/p_E - delta_E) * u[1]",
@@ -45,47 +45,15 @@
     ],
     "number_of_measurements": 30,
     "inferred_parameters": {
-        "alpha": {
+        "delta_E": {
             "distribution": "normal",
             "parameters": [
-                0.5,
-                0.5
+                0.1,
+                0.1
             ],
             "bounds": [
                 0,
-                1.0
-            ]
-        },
-        "lf_M": {
-            "distribution": "normal",
-            "parameters": [
-                10,
-                10
-            ],
-            "bounds": [
-                0,
-                150
-            ]
-        },  "a": {
-            "distribution": "normal",
-            "parameters": [
-                0.5,
-                0.5
-            ],
-            "bounds": [
-                0,
-                1.0
-            ]
-        },
-          "delta_E": {
-            "distribution": "normal",
-            "parameters": [
-                0.5,
-                0.5
-            ],
-            "bounds": [
-                0,
-                1.0
+                1
             ]
         }
     },
@@ -122,10 +90,10 @@
         {"linear_combination":[0,0,0,0,0,0,0,1,0], "name":"infected hosts"}
     ],
     "observable_standard_deviation": [
-        10000,
-        20000,
-        5000,
-        5000
+        1000,
+        2000,
+        500,
+        500
     ],
     "number_of_samples": 100
 }
