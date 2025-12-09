@@ -561,7 +561,9 @@ class tempDependentParameter:
     def get_function_parameter_length(self):
         return self.n_function_parameters
 
-    def visualize(self, time_dependent = False):
+    def visualize(self, func_params = None,time_dependent = False):
+        if(func_params is None):
+            func_params = self.get_function_parameters()
         if(time_dependent):
             xaxis = np.linspace(0,100,500)
             xlabel = "time(days)"
@@ -570,9 +572,9 @@ class tempDependentParameter:
             xlabel = "temp(degrees C)"
 
         if(time_dependent):
-            evals = [self.func(temperature_profile(t)) for t in xaxis]
+            evals = [self.func(temperature_profile(t), func_params) for t in xaxis]
         else:
-            evals = [self.func(t) for t in xaxis]
+            evals = [self.func(t, func_params) for t in xaxis]
         plt.plot(xaxis,evals)
         plt.title(f"{self.name} / {self.long_name}")
         plt.xlabel(xlabel)
