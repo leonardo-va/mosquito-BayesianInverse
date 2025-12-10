@@ -265,7 +265,7 @@ with pm.Model() as model:
     # -----------------------------
     # 4. Sampling
     # -----------------------------
-    trace = pm.sample(20, tune=20, chains=4,cores=4, start={"theta":[0.0002, 0.067]})
+    trace = pm.sample(200, tune=200, chains=4,cores=4)
     # pm.Metropolis()
     ppc = pm.sample_posterior_predictive(trace)
 model.debug()
