@@ -211,7 +211,7 @@ n_states = 9
 n_observables = 2
 n_inferred_params = 2
 prior_means = [0.5,0.5]
-prior_sigma = [0.1,0.1]
+prior_sigma = [0.2,0.2]
 # Solve ODE using scipy for synthetic observations
 solve_start = perf_counter()
 true_traj = odeint(lambda y, t: ode_temp_independent_np(y, t, true_theta_temp_constant), y_0, ts) 
@@ -242,7 +242,7 @@ with pm.Model() as model:
 
     # Define the ODE system
     ode_model = pm.ode.DifferentialEquation(
-        func=ode_pt,
+        func=ode_temp_independent_pt,
         times=ts,
         n_states=n_states,
         n_theta=n_inferred_params,
@@ -253,7 +253,7 @@ with pm.Model() as model:
     y_hat = ode_model(y0=y_0, theta=theta_priors)  # shape (20, 2)
     y_hat_transformed = qoi_pt(y_hat)
     # Likelihood: vectorized
-    pt_debugger(y_hat_transformed.shape)
+    # pt_debugger(y_hat_transformed.shape)
     
     pm.Normal(
         "y_obs",
