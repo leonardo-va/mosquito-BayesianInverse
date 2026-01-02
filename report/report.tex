@@ -371,7 +371,21 @@ The mean and map estimates are:
 \[\text{mean:   } \hat{\theta}_{u_1} = \begin{bmatrix}1.974\text{e-}6 \\ 0.0996\end{bmatrix}\quad\text{map: }\hat{\theta}_{u_1} = \begin{bmatrix}1.94\text{e-}6 \\ 0.0995\end{bmatrix}\]
 \[\text{mean:   } \hat{\theta}_{u_2} = \begin{bmatrix}2.297\text{e-}6 \\ 0.0984 \\ 0.4936 \\ 0.6929\end{bmatrix}\quad\text{map: }\hat{\theta}_{u_2} = \begin{bmatrix}2.384\text{e-}6 \\ 0.0979 \\ 0.4765 \\ 0.6718\end{bmatrix}\]
 The resulting mosquito population $M$ and juvenile population $J$ over time are visualized in figures \ref{fig:predictions_2} and \ref{fig:predictions_4}. 
-The green line is the artificial data, and the red line is the new simulation with the mean/map estimators. 
+The green line is the artificial data, and the red line is the prediction using the mean/map estimators. 
+
+To determine the quality of the samples, the effective sample size (ess) is calculated. This value describes how many samples can be considered independent,
+out of the total amount. We can also estimate the cost per independent sample by dividing the runtime of the sampler by the ess.
+A summary of this analysis is shown in figures \ref{fig:analysis_2} and \ref{fig:analysis_4}. In case of the two dimensional parameter space
+($\theta_{u_1}$), approximately $20\%$ of the samples can be considered independent. This decreases to $6-12\%$ for the four dimensional parameter space. 
+Also, the cost per independent sample increases by a factor of 10, going from two to four dimensions. 
+
+Correlations between the scalar parameters in $\hat{\theta}_{u_1}$ and $\hat{\theta}_{u_2}$ are shown in figures 
+\ref{fig:corr_2} and \ref{fig:corr_4}. We can for example see a negative correlation between $\mu_M$ and $a$ in both experiments, since
+these parameters both affect the juvenile and adult mosquito populations, but in opposite directions. 
+
+
+
+
 
 \begin{figure}[]
     \centering
@@ -434,6 +448,36 @@ The green line is the artificial data, and the red line is the new simulation wi
     \caption{Prediction of adult and juvenile populations, using the mean and map estimators for $\theta_{u_2}$.}
     \label{fig:predictions_4}
 \end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.2\textwidth, height=0.8\textwidth]{analytics_2.png}
+    \caption{Analysis of sample quality for $\theta_{u_1}$ (two dimensional parameter space). The runtime of the sampler is measured and the ESS is estimated, using the python package arviz.
+    From this, the cost of per independent sample can be calculated.}
+    \label{fig:analysis_2}
+\end{figure}
+ 
+\begin{figure}
+    \centering
+    \includegraphics[width=1.2\textwidth, height=0.8\textwidth]{analytics_4.png}
+    \caption{Analysis of sample quality for $\theta_{u_2}$ (four dimensional parameter space), analogous to \ref{fig:analysis_2}. }
+    \label{fig:analysis_4}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth, height=0.5\textwidth]{correlation_2.png}
+    \caption{Correlation plot for $\theta_{u_1}$ ($\mu_M$ on the y-axis and $a$ on the x-axis)}
+    \label{fig:corr_2}
+\end{figure}
+ 
+\begin{figure}
+    \hspace{-4cm}
+    \includegraphics[width=1.7\textwidth, height=0.8\textwidth]{correlation_4.png}
+    \caption{Correlation plot for $\theta_{u_2}$}
+    \label{fig:corr_4}
+\end{figure}
+
 
 
 
