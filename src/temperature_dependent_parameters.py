@@ -21,6 +21,10 @@ class ConstantFunction:
         val = func_params[0]
         return val
 
+    def eval_sp(self, T, func_params):
+        val = func_params[0]
+        return val
+
     def get_stan_string(self):
         return ""
 
